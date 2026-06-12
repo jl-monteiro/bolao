@@ -1,4 +1,4 @@
-import { HealthController } from "./health.controller";
+import { HealthController } from "./health.controller.js";
 
 describe("HealthController", () => {
   it("reports the API as healthy", () => {
@@ -9,4 +9,3 @@ describe("HealthController", () => {
     expect(Date.parse(response.timestamp)).not.toBeNaN();
   });
 });
-

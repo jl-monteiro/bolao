@@ -1,5 +1,6 @@
 import { Controller, Get } from "@nestjs/common";
 import { ApiOkResponse, ApiTags } from "@nestjs/swagger";
+import { AllowAnonymous } from "@thallesp/nestjs-better-auth";
 
 type HealthResponse = {
   service: "api";
@@ -8,6 +9,7 @@ type HealthResponse = {
 };
 
 @ApiTags("health")
+@AllowAnonymous()
 @Controller("health")
 export class HealthController {
   @Get()
@@ -28,4 +30,3 @@ export class HealthController {
     };
   }
 }
-

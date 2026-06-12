@@ -1,4 +1,4 @@
-import { auth } from "./auth";
+import { auth } from "./auth.js";
 
 describe("auth", () => {
   it("creates the Better Auth instance at the versioned API path", () => {

@@ -1,4 +1,4 @@
-import { buildAuthOptions } from "./auth-options";
+import { buildAuthOptions } from "./auth-options.js";
 
 const baseEnvironment = {
   API_URL: "http://localhost:3001",
