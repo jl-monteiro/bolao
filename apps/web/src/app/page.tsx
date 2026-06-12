@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const features = [
   {
     title: "Crie seu grupo",
@@ -23,9 +25,9 @@ export default function Home() {
         <nav aria-label="Navegacao principal">
           <a href="#como-funciona">Como funciona</a>
           <a href="#seguranca">Seguranca</a>
-          <button className="button button-secondary" type="button">
+          <Link className="button button-secondary" href="/entrar">
             Entrar
-          </button>
+          </Link>
         </nav>
       </header>
 
