@@ -26,6 +26,7 @@ export function AuthForm() {
     if (mode === "sign-up") {
       const name = String(formData.get("name"));
       const { error } = await authClient.signUp.email({
+        callbackURL: `${window.location.origin}/entrar?verificado=1`,
         email,
         name,
         password,

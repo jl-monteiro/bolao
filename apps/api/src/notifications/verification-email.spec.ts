@@ -8,13 +8,11 @@ describe("buildVerificationEmail", () => {
       url: "https://api.example.com/v1/auth/verify-email?token=abc",
     });
 
-    expect(message).toEqual({
-      subject: "Confirme seu e-mail no Bolao",
-      text: expect.stringContaining(
-        "https://api.example.com/v1/auth/verify-email?token=abc",
-      ),
-      to: "pessoa@example.com",
-    });
+    expect(message.subject).toBe("Confirme seu e-mail no Bolao");
+    expect(message.to).toBe("pessoa@example.com");
+    expect(message.text).toContain(
+      "https://api.example.com/v1/auth/verify-email?token=abc",
+    );
     expect(message.text).toContain("Pessoa");
   });
 });

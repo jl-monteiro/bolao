@@ -12,7 +12,8 @@ const message = {
 
 describe("createNotificationProvider", () => {
   it("uses a visible console provider outside production without a Resend key", async () => {
-    const log = jest.fn();
+    const messages: string[] = [];
+    const log = (entry: string) => messages.push(entry);
     const provider = createNotificationProvider(
       {
         NODE_ENV: "test",
@@ -24,9 +25,8 @@ describe("createNotificationProvider", () => {
 
     await provider.sendEmail(message);
 
-    expect(log).toHaveBeenCalledWith(
-      expect.stringContaining("https://example.com/verificar"),
-    );
+    expect(messages).toHaveLength(1);
+    expect(messages[0]).toContain("https://example.com/verificar");
   });
 
   it("uses Resend when credentials are configured", () => {
