@@ -17,6 +17,7 @@
     "db:studio": "pnpm --filter @bolao/api db:studio"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "turbo": "^2.6.1",
     "typescript": "^5.9.3"
   },
