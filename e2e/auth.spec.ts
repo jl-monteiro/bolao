@@ -32,7 +32,8 @@ test("visitante cria conta e recebe instrucao para confirmar e-mail", async ({
 
   await expect(
     page.getByRole("status").filter({
-      hasText: "Conta criada. Confira seu e-mail para confirmar o acesso.",
+      hasText:
+        "Conta criada. No sandbox, abra o link exibido no terminal da API.",
     }),
   ).toBeVisible();
 });
