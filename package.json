@@ -12,6 +12,7 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
+    "db:deploy": "pnpm --filter @bolao/api db:deploy",
     "db:generate": "pnpm --filter @bolao/api db:generate",
     "db:migrate": "pnpm --filter @bolao/api db:migrate",
     "db:studio": "pnpm --filter @bolao/api db:studio"
