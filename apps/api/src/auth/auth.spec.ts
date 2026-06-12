@@ -8,5 +8,9 @@ describe("auth", () => {
       requireEmailVerification: true,
     });
     expect(auth.options.database).toBeDefined();
+    expect(auth.options.emailVerification).toMatchObject({
+      sendOnSignUp: true,
+      sendVerificationEmail: expect.any(Function),
+    });
   });
 });
