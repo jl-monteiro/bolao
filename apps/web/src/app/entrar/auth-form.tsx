@@ -13,6 +13,9 @@ type AuthFormProps = {
   emailVerified?: boolean;
 };
 
+const usesSandboxEmail =
+  process.env.NEXT_PUBLIC_EMAIL_DELIVERY !== "resend";
+
 export function AuthForm({ emailVerified = false }: AuthFormProps) {
   const [mode, setMode] = useState<AuthMode>("sign-in");
   const [feedback, setFeedback] = useState<Feedback>(
@@ -51,8 +54,9 @@ export function AuthForm({ emailVerified = false }: AuthFormProps) {
               type: "error",
             }
           : {
-              message:
-                "Conta criada. Confira seu e-mail para confirmar o acesso.",
+              message: usesSandboxEmail
+                ? "Conta criada. No sandbox, abra o link exibido no terminal da API."
+                : "Conta criada. Confira seu e-mail para confirmar o acesso.",
               type: "success",
             },
       );

@@ -35,6 +35,7 @@ export default defineConfig({
       command: "pnpm --filter @bolao/web dev",
       env: {
         NEXT_PUBLIC_API_URL: "http://localhost:3001",
+        NEXT_PUBLIC_EMAIL_DELIVERY: "console",
       },
       reuseExistingServer: true,
       timeout: 120_000,
