@@ -7,7 +7,16 @@ export const metadata: Metadata = {
   description: "Entre ou crie sua conta para participar dos seus boloes.",
 };
 
-export default function EntrarPage() {
+type EntrarPageProps = {
+  searchParams: Promise<{
+    verificado?: string | string[];
+  }>;
+};
+
+export default async function EntrarPage({ searchParams }: EntrarPageProps) {
+  const params = await searchParams;
+  const emailVerified = params.verificado === "1";
+
   return (
     <main className="auth-page">
       <header className="auth-header">
@@ -32,7 +41,7 @@ export default function EntrarPage() {
           </p>
         </div>
 
-        <AuthForm />
+        <AuthForm emailVerified={emailVerified} />
       </section>
     </main>
   );

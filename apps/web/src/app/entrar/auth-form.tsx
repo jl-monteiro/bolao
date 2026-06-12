@@ -9,9 +9,20 @@ type Feedback = {
   type: "error" | "success";
 } | null;
 
-export function AuthForm() {
+type AuthFormProps = {
+  emailVerified?: boolean;
+};
+
+export function AuthForm({ emailVerified = false }: AuthFormProps) {
   const [mode, setMode] = useState<AuthMode>("sign-in");
-  const [feedback, setFeedback] = useState<Feedback>(null);
+  const [feedback, setFeedback] = useState<Feedback>(
+    emailVerified
+      ? {
+          message: "E-mail confirmado. Agora voce pode entrar.",
+          type: "success",
+        }
+      : null,
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
