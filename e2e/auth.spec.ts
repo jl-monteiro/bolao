@@ -36,3 +36,15 @@ test("visitante cria conta e recebe instrucao para confirmar e-mail", async ({
     }),
   ).toBeVisible();
 });
+
+test("usuario recebe confirmacao visual depois de verificar o e-mail", async ({
+  page,
+}) => {
+  await page.goto("/entrar?verificado=1");
+
+  await expect(
+    page.getByRole("status").filter({
+      hasText: "E-mail confirmado. Agora voce pode entrar.",
+    }),
+  ).toBeVisible();
+});
