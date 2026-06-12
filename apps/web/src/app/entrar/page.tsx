@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AuthForm } from "./auth-form";
 
 export const metadata: Metadata = {
   title: "Entrar | Bolao",
@@ -31,35 +32,7 @@ export default function EntrarPage() {
           </p>
         </div>
 
-        <div className="auth-panel">
-          <form>
-            <label htmlFor="email">E-mail</label>
-            <input
-              autoComplete="email"
-              id="email"
-              name="email"
-              placeholder="voce@exemplo.com"
-              type="email"
-            />
-
-            <label htmlFor="password">Senha</label>
-            <input
-              autoComplete="current-password"
-              id="password"
-              minLength={8}
-              name="password"
-              type="password"
-            />
-
-            <button className="button button-primary" type="submit">
-              Entrar
-            </button>
-          </form>
-
-          <p className="auth-switch">
-            Novo por aqui? <button type="button">Criar conta</button>
-          </p>
-        </div>
+        <AuthForm />
       </section>
     </main>
   );

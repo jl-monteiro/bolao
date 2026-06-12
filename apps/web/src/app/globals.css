@@ -325,6 +325,31 @@ nav a {
   margin-top: 18px;
 }
 
+.auth-panel .button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.auth-feedback {
+  border-radius: 12px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.5;
+  margin: 20px 0 0;
+  padding: 12px 14px;
+}
+
+.auth-feedback-success {
+  background: rgba(216, 255, 69, 0.16);
+  border: 1px solid rgba(216, 255, 69, 0.5);
+  color: var(--lime);
+}
+
+.auth-feedback-error {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
 .auth-switch {
   font-size: 0.9rem;
   margin: 28px 0 0;
