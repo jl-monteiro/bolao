@@ -11,6 +11,8 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "test": "turbo run test",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
     "typecheck": "turbo run typecheck",
     "db:deploy": "pnpm --filter @bolao/api db:deploy",
     "db:generate": "pnpm --filter @bolao/api db:generate",
