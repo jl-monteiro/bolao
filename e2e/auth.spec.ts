@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("visitante abre autenticacao e recebe aviso de confirmacao", async ({
+test("visitante abre autenticação pela navegação principal", async ({
   page,
 }) => {
   await page.goto("/");
@@ -8,26 +8,35 @@ test("visitante abre autenticacao e recebe aviso de confirmacao", async ({
 
   await expect(page).toHaveURL("/entrar");
   await expect(
-    page.getByRole("heading", { name: "Entre no seu bolao" }),
+    page.getByRole("heading", { name: "Entre no seu bolão." }),
   ).toBeVisible();
   await expect(
-    page.getByText("Voce precisara confirmar seu e-mail antes de entrar."),
+    page.getByText("E-mail confirmado antes do primeiro acesso."),
   ).toBeVisible();
   await expect(page.getByLabel("E-mail")).toBeVisible();
-  await expect(page.getByLabel("Senha")).toBeVisible();
+  await expect(
+    page.getByRole("textbox", { name: "Senha", exact: true }),
+  ).toBeVisible();
 });
 
-test("visitante cria conta e recebe instrucao para confirmar e-mail", async ({
+test("CTA principal abre cadastro e visitante cria conta", async ({
   page,
 }) => {
   const email = `e2e-${Date.now()}@bolao.local`;
 
-  await page.goto("/entrar");
-  await page.getByRole("button", { name: "Criar conta" }).click();
+  await page.goto("/");
+  await page.getByRole("link", { name: "Criar meu grupo" }).click();
+
+  await expect(page).toHaveURL("/entrar?modo=cadastro");
+  await expect(
+    page.getByRole("heading", { name: "Comece seu primeiro bolão" }),
+  ).toBeVisible();
 
   await page.getByLabel("Nome").fill("Teste E2E");
   await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha").fill("senha-segura-123");
+  await page
+    .getByRole("textbox", { name: "Senha", exact: true })
+    .fill("senha-segura-123");
   await page.getByRole("button", { name: "Criar minha conta" }).click();
 
   await expect(
@@ -38,14 +47,14 @@ test("visitante cria conta e recebe instrucao para confirmar e-mail", async ({
   ).toBeVisible();
 });
 
-test("usuario recebe confirmacao visual depois de verificar o e-mail", async ({
+test("usuário recebe confirmação visual depois de verificar o e-mail", async ({
   page,
 }) => {
   await page.goto("/entrar?verificado=1");
 
   await expect(
     page.getByRole("status").filter({
-      hasText: "E-mail confirmado. Agora voce pode entrar.",
+      hasText: "E-mail confirmado. Agora você pode entrar.",
     }),
   ).toBeVisible();
 });

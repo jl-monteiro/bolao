@@ -3,12 +3,13 @@ import Link from "next/link";
 import { AuthForm } from "./auth-form";
 
 export const metadata: Metadata = {
-  title: "Entrar | Bolao",
-  description: "Entre ou crie sua conta para participar dos seus boloes.",
+  title: "Entrar | Bolão",
+  description: "Entre ou crie sua conta para participar dos seus bolões.",
 };
 
 type EntrarPageProps = {
   searchParams: Promise<{
+    modo?: string | string[];
     verificado?: string | string[];
   }>;
 };
@@ -16,33 +17,53 @@ type EntrarPageProps = {
 export default async function EntrarPage({ searchParams }: EntrarPageProps) {
   const params = await searchParams;
   const emailVerified = params.verificado === "1";
+  const initialMode = params.modo === "cadastro" ? "sign-up" : "sign-in";
 
   return (
-    <main className="auth-page">
+    <>
       <header className="auth-header">
-        <Link className="brand" href="/">
-          BOLAO
+        <Link className="brand" href="/" translate="no">
+          BOLÃO
         </Link>
-        <Link className="text-link" href="/">
-          Voltar ao inicio
+        <Link className="back-link" href="/">
+          <svg aria-hidden="true" viewBox="0 0 20 20">
+            <path d="M16 10H5m4-4-4 4 4 4" />
+          </svg>
+          Voltar ao Início
         </Link>
       </header>
 
-      <section className="auth-shell">
-        <div className="auth-intro">
-          <span className="eyebrow">ACESSO SEGURO</span>
-          <h1>Entre no seu bolao</h1>
-          <p>
-            Acompanhe palpites, ranking e contribuicoes dos seus grupos em um
-            unico lugar.
-          </p>
-          <p className="auth-notice">
-            Voce precisara confirmar seu e-mail antes de entrar.
-          </p>
-        </div>
+      <main className="auth-page" id="conteudo">
+        <section className="auth-shell" aria-labelledby="auth-title">
+          <div className="auth-intro">
+            <p className="kicker">Acesso seguro</p>
+            <h1 id="auth-title">Entre no seu bolão.</h1>
+            <p className="auth-description">
+              Acompanhe palpites, ranking e contribuições dos seus grupos em um
+              único lugar.
+            </p>
+            <ul className="auth-benefits">
+              <li>
+                <span aria-hidden="true">01</span>
+                Palpites protegidos até o início de cada jogo.
+              </li>
+              <li>
+                <span aria-hidden="true">02</span>
+                Histórico completo de regras e movimentações.
+              </li>
+              <li>
+                <span aria-hidden="true">03</span>
+                E-mail confirmado antes do primeiro acesso.
+              </li>
+            </ul>
+          </div>
 
-        <AuthForm emailVerified={emailVerified} />
-      </section>
-    </main>
+          <AuthForm
+            emailVerified={emailVerified}
+            initialMode={initialMode}
+          />
+        </section>
+      </main>
+    </>
   );
 }
