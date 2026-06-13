@@ -3,7 +3,11 @@ import type { UserSession } from "@thallesp/nestjs-better-auth";
 import { auth } from "../auth/auth.js";
 import { GroupRole } from "../generated/prisma/enums.js";
 import { GroupsController } from "./groups.controller.js";
-import type { GroupResult, GroupsService } from "./groups.service.js";
+import type {
+  GroupMemberResult,
+  GroupResult,
+  GroupsService,
+} from "./groups.service.js";
 
 const group: GroupResult = {
   createdAt: new Date("2026-06-13T12:00:00.000Z"),
@@ -21,6 +25,14 @@ const session = {
   },
 } as UserSession<typeof auth>;
 
+const member: GroupMemberResult = {
+  id: "membership-1",
+  image: null,
+  joinedAt: new Date("2026-06-13T12:00:00.000Z"),
+  name: "Teste E2E",
+  role: GroupRole.OWNER,
+};
+
 function createServiceMock() {
   return {
     create: jest.fn<
@@ -30,6 +42,16 @@ function createServiceMock() {
       (userId: string, groupId: string) => Promise<GroupResult>
     >(),
     list: jest.fn<(userId: string) => Promise<GroupResult[]>>(),
+    listMembers: jest.fn<
+      (userId: string, groupId: string) => Promise<GroupMemberResult[]>
+    >(),
+    update: jest.fn<
+      (
+        userId: string,
+        groupId: string,
+        input: { description?: string | null; name?: string },
+      ) => Promise<GroupResult>
+    >(),
   };
 }
 
@@ -71,5 +93,42 @@ describe("GroupsController", () => {
       controller.getById(session, "group-1"),
     ).resolves.toBe(group);
     expect(service.getById).toHaveBeenCalledWith("user-1", "group-1");
+  });
+
+  it("lists members for the authenticated Group member", async () => {
+    const service = createServiceMock();
+    service.listMembers.mockResolvedValue([member]);
+    const controller = new GroupsController(
+      service as unknown as GroupsService,
+    );
+
+    await expect(
+      controller.listMembers(session, "group-1"),
+    ).resolves.toEqual([member]);
+    expect(service.listMembers).toHaveBeenCalledWith(
+      "user-1",
+      "group-1",
+    );
+  });
+
+  it("updates a Group for the authenticated user", async () => {
+    const service = createServiceMock();
+    service.update.mockResolvedValue(group);
+    const controller = new GroupsController(
+      service as unknown as GroupsService,
+    );
+    const input = {
+      description: "Descrição atualizada",
+      name: "Copa atualizada",
+    };
+
+    await expect(
+      controller.update(session, "group-1", input),
+    ).resolves.toBe(group);
+    expect(service.update).toHaveBeenCalledWith(
+      "user-1",
+      "group-1",
+      input,
+    );
   });
 });

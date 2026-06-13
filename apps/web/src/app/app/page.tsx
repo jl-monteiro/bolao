@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "@/lib/auth-session";
 import { getGroups, type GroupRole } from "@/lib/groups-api";
@@ -47,17 +48,26 @@ export default async function AppPage() {
       ) : (
         <div className="group-grid">
           {groups.map((group) => (
-            <article className="group-card" key={group.id}>
-              <div className="group-card-meta">
-                <span>{roleLabels[group.role]}</span>
-                <span>{group.description ? "Grupo ativo" : "Sem descrição"}</span>
-              </div>
-              <h2>{group.name}</h2>
-              <p>
-                {group.description ??
-                  "Adicione detalhes quando o gerenciamento do Grupo estiver disponível."}
-              </p>
-            </article>
+            <Link
+              aria-label={group.name}
+              className="group-card-link"
+              href={`/app/grupos/${group.id}`}
+              key={group.id}
+            >
+              <article className="group-card">
+                <div className="group-card-meta">
+                  <span>{roleLabels[group.role]}</span>
+                  <span>
+                    {group.description ? "Grupo ativo" : "Sem descrição"}
+                  </span>
+                </div>
+                <h2>{group.name}</h2>
+                <p>
+                  {group.description ??
+                    "Abra o Grupo para consultar seus membros e detalhes."}
+                </p>
+              </article>
+            </Link>
           ))}
         </div>
       )}

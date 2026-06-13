@@ -1,7 +1,23 @@
 import { expect, test } from "@playwright/test";
-import { createVerifiedUser } from "./support/auth";
+import type { Page } from "@playwright/test";
+import {
+  addGroupMembership,
+  createVerifiedUser,
+  getGroupAuditLogs,
+  type VerifiedUser,
+} from "./support/auth";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+
+async function signIn(page: Page, user: VerifiedUser) {
+  await page.goto("/entrar");
+  await page.getByLabel("E-mail").fill(user.email);
+  await page
+    .getByRole("textbox", { name: "Senha", exact: true })
+    .fill(user.password);
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await expect(page).toHaveURL("/app");
+}
 
 test("visitante abre autenticação pela navegação principal", async ({
   page,
@@ -209,5 +225,183 @@ test("usuário não lista nem acessa Grupo alheio", async ({
     expect(directAccessResponse.status()).toBe(404);
   } finally {
     await outsiderContext.close();
+  }
+});
+
+test("membro abre o detalhe do Grupo e vê os papéis", async ({
+  page,
+  request,
+}) => {
+  const owner = await createVerifiedUser(request);
+  const member = await createVerifiedUser(request);
+  const groupName = `Detalhe ${Date.now()}`;
+
+  await signIn(page, owner);
+  const createResponse = await page.context().request.post(
+    `${apiUrl}/v1/groups`,
+    {
+      data: {
+        description: "Grupo com membros visíveis.",
+        name: groupName,
+      },
+    },
+  );
+  expect(createResponse.status()).toBe(201);
+  const group = (await createResponse.json()) as { id: string };
+  await addGroupMembership(group.id, member.id, "MEMBER");
+
+  await page.goto("/app");
+  await page.getByRole("link", { name: groupName }).click();
+
+  await expect(page).toHaveURL(`/app/grupos/${group.id}`);
+  await expect(
+    page.getByRole("heading", { name: groupName }),
+  ).toBeVisible();
+  await expect(page.getByTestId("group-description")).toHaveText(
+    "Grupo com membros visíveis.",
+  );
+  const membersRegion = page.getByRole("region", {
+    name: "Membros do Grupo",
+  });
+  await expect(membersRegion.getByText("Proprietário")).toBeVisible();
+  await expect(
+    membersRegion.getByText("Membro", { exact: true }),
+  ).toBeVisible();
+  await expect(membersRegion.getByText(owner.name)).toBeVisible();
+});
+
+test("Proprietário e Organizador editam o Grupo com auditoria", async ({
+  browser,
+  page,
+  request,
+}) => {
+  const owner = await createVerifiedUser(request);
+  const organizer = await createVerifiedUser(request);
+  const originalName = `Auditoria ${Date.now()}`;
+
+  await signIn(page, owner);
+  const createResponse = await page.context().request.post(
+    `${apiUrl}/v1/groups`,
+    {
+      data: {
+        description: "Descrição original",
+        name: originalName,
+      },
+    },
+  );
+  expect(createResponse.status()).toBe(201);
+  const group = (await createResponse.json()) as { id: string };
+  await addGroupMembership(group.id, organizer.id, "ORGANIZER");
+
+  await page.goto(`/app/grupos/${group.id}`);
+  await page.getByLabel("Nome do Grupo").fill("Nome do Proprietário");
+  await page
+    .getByLabel("Descrição do Grupo")
+    .fill("Atualizada pelo Proprietário");
+  await page
+    .getByRole("button", { name: "Salvar alterações" })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Nome do Proprietário" }),
+  ).toBeVisible();
+
+  const organizerContext = await browser.newContext();
+  try {
+    const organizerPage = await organizerContext.newPage();
+    await signIn(organizerPage, organizer);
+    await organizerPage.goto(`/app/grupos/${group.id}`);
+    await organizerPage
+      .getByLabel("Nome do Grupo")
+      .fill("Nome do Organizador");
+    await organizerPage
+      .getByLabel("Descrição do Grupo")
+      .fill("Atualizada pelo Organizador");
+    await organizerPage
+      .getByRole("button", { name: "Salvar alterações" })
+      .click();
+    await expect(
+      organizerPage.getByRole("heading", {
+        name: "Nome do Organizador",
+      }),
+    ).toBeVisible();
+    await organizerPage.reload();
+    await expect(
+      organizerPage.getByTestId("group-description"),
+    ).toHaveText("Atualizada pelo Organizador");
+  } finally {
+    await organizerContext.close();
+  }
+
+  const logs = await getGroupAuditLogs(group.id);
+  expect(logs).toHaveLength(3);
+  expect(logs[0]).toMatchObject({
+    action: "GROUP_CREATED",
+    actorId: owner.id,
+    newValues: {
+      description: "Descrição original",
+      name: originalName,
+    },
+    previousValues: null,
+  });
+  expect(logs[1]).toMatchObject({
+    action: "GROUP_UPDATED",
+    actorId: owner.id,
+    previousValues: {
+      description: "Descrição original",
+      name: originalName,
+    },
+  });
+  expect(logs[2]).toMatchObject({
+    action: "GROUP_UPDATED",
+    actorId: organizer.id,
+    newValues: {
+      description: "Atualizada pelo Organizador",
+      name: "Nome do Organizador",
+    },
+  });
+});
+
+test("Membro consulta o Grupo, mas não edita", async ({
+  browser,
+  page,
+  request,
+}) => {
+  const owner = await createVerifiedUser(request);
+  const member = await createVerifiedUser(request);
+
+  await signIn(page, owner);
+  const createResponse = await page.context().request.post(
+    `${apiUrl}/v1/groups`,
+    {
+      data: {
+        name: `Somente leitura ${Date.now()}`,
+      },
+    },
+  );
+  const group = (await createResponse.json()) as { id: string };
+  await addGroupMembership(group.id, member.id, "MEMBER");
+
+  const memberContext = await browser.newContext();
+  try {
+    const memberPage = await memberContext.newPage();
+    await signIn(memberPage, member);
+    await memberPage.goto(`/app/grupos/${group.id}`);
+
+    await expect(
+      memberPage.getByRole("button", { name: "Salvar alterações" }),
+    ).toHaveCount(0);
+    await expect(memberPage.getByText("Acesso de leitura")).toBeVisible();
+
+    const response = await memberContext.request.patch(
+      `${apiUrl}/v1/groups/${group.id}`,
+      {
+        data: {
+          name: "Alteração indevida",
+        },
+      },
+    );
+    expect(response.status()).toBe(403);
+  } finally {
+    await memberContext.close();
   }
 });
