@@ -8,6 +8,12 @@ datasource db {
   provider = "postgresql"
 }
 
+enum GroupRole {
+  OWNER
+  ORGANIZER
+  MEMBER
+}
+
 model User {
   id            String    @id
   name          String
@@ -18,6 +24,7 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+  memberships   GroupMembership[]
 }
 
 model Session {
@@ -63,4 +70,28 @@ model Verification {
   updatedAt  DateTime @updatedAt
 
   @@index([identifier])
+}
+
+model Group {
+  id          String            @id @default(cuid())
+  name        String
+  description String?
+  image       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  memberships GroupMembership[]
+}
+
+model GroupMembership {
+  id        String    @id @default(cuid())
+  role      GroupRole @default(MEMBER)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  groupId   String
+  userId    String
+  group     Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([userId])
 }

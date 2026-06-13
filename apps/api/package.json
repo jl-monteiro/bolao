@@ -36,6 +36,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",
+    "@jest/globals": "^30.4.1",
     "@nestjs/cli": "^11.0.14",
     "@nestjs/schematics": "^11.0.9",
     "@nestjs/testing": "^11.1.16",

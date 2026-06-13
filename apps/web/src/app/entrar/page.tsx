@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getServerSession } from "@/lib/auth-session";
 import { AuthForm } from "./auth-form";
 
 export const metadata: Metadata = {
@@ -15,7 +17,15 @@ type EntrarPageProps = {
 };
 
 export default async function EntrarPage({ searchParams }: EntrarPageProps) {
-  const params = await searchParams;
+  const [params, session] = await Promise.all([
+    searchParams,
+    getServerSession(),
+  ]);
+
+  if (session) {
+    redirect("/app");
+  }
+
   const emailVerified = params.verificado === "1";
   const initialMode = params.modo === "cadastro" ? "sign-up" : "sign-in";
 

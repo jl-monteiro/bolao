@@ -77,22 +77,21 @@ export function AuthForm({
       password,
     });
 
+    if (!error) {
+      router.replace("/app");
+      router.refresh();
+      return;
+    }
+
     setIsSubmitting(false);
-    setFeedback(
-      error
-        ? {
-            message:
-              error.code === "EMAIL_NOT_VERIFIED"
-                ? "Confirme seu e-mail antes de entrar."
-                : (error.message ??
-                  "E-mail ou senha inválidos. Confira os dados e tente novamente."),
-            type: "error",
-          }
-        : {
-            message: "Login realizado.",
-            type: "success",
-          },
-    );
+    setFeedback({
+      message:
+        error.code === "EMAIL_NOT_VERIFIED"
+          ? "Confirme seu e-mail antes de entrar."
+          : (error.message ??
+            "E-mail ou senha inválidos. Confira os dados e tente novamente."),
+      type: "error",
+    });
   }
 
   function changeMode(nextMode: AuthMode) {

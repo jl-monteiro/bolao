@@ -29,6 +29,7 @@ async function bootstrap() {
     .setTitle("Bolao API")
     .setDescription("API da plataforma Bolao")
     .setVersion("1.0")
+    .addCookieAuth("better-auth.session_token")
     .build();
   const documentFactory = () =>
     SwaggerModule.createDocument(app, openApiConfig);
