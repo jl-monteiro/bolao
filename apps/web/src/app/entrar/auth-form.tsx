@@ -17,6 +17,8 @@ type AuthFormProps = {
 
 const usesSandboxEmail =
   process.env.NEXT_PUBLIC_EMAIL_DELIVERY !== "resend";
+const networkErrorMessage =
+  "Não foi possível conectar ao servidor. Confirme se a API está em execução e tente novamente.";
 
 export function AuthForm({
   emailVerified = false,
@@ -44,54 +46,62 @@ export function AuthForm({
     const email = String(formData.get("email"));
     const password = String(formData.get("password"));
 
-    if (mode === "sign-up") {
-      const name = String(formData.get("name"));
-      const { error } = await authClient.signUp.email({
-        callbackURL: `${window.location.origin}/entrar?verificado=1`,
+    try {
+      if (mode === "sign-up") {
+        const name = String(formData.get("name"));
+        const { error } = await authClient.signUp.email({
+          callbackURL: `${window.location.origin}/entrar?verificado=1`,
+          email,
+          name,
+          password,
+        });
+
+        setIsSubmitting(false);
+        setFeedback(
+          error
+            ? {
+                message:
+                  error.message ??
+                  "Não foi possível criar sua conta. Tente novamente.",
+                type: "error",
+              }
+            : {
+                message: usesSandboxEmail
+                  ? "Conta criada. No sandbox, abra o link exibido no terminal da API."
+                  : "Conta criada. Confira seu e-mail para confirmar o acesso.",
+                type: "success",
+              },
+        );
+        return;
+      }
+
+      const { error } = await authClient.signIn.email({
         email,
-        name,
         password,
       });
 
+      if (!error) {
+        router.replace("/app");
+        router.refresh();
+        return;
+      }
+
       setIsSubmitting(false);
-      setFeedback(
-        error
-          ? {
-              message:
-                error.message ??
-                "Não foi possível criar sua conta. Tente novamente.",
-              type: "error",
-            }
-          : {
-              message: usesSandboxEmail
-                ? "Conta criada. No sandbox, abra o link exibido no terminal da API."
-                : "Conta criada. Confira seu e-mail para confirmar o acesso.",
-              type: "success",
-            },
-      );
-      return;
+      setFeedback({
+        message:
+          error.code === "EMAIL_NOT_VERIFIED"
+            ? "Confirme seu e-mail antes de entrar."
+            : (error.message ??
+              "E-mail ou senha inválidos. Confira os dados e tente novamente."),
+        type: "error",
+      });
+    } catch {
+      setIsSubmitting(false);
+      setFeedback({
+        message: networkErrorMessage,
+        type: "error",
+      });
     }
-
-    const { error } = await authClient.signIn.email({
-      email,
-      password,
-    });
-
-    if (!error) {
-      router.replace("/app");
-      router.refresh();
-      return;
-    }
-
-    setIsSubmitting(false);
-    setFeedback({
-      message:
-        error.code === "EMAIL_NOT_VERIFIED"
-          ? "Confirme seu e-mail antes de entrar."
-          : (error.message ??
-            "E-mail ou senha inválidos. Confira os dados e tente novamente."),
-      type: "error",
-    });
   }
 
   function changeMode(nextMode: AuthMode) {

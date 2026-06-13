@@ -66,6 +66,31 @@ test("CTA principal abre cadastro e visitante cria conta", async ({
   ).toBeVisible();
 });
 
+test("cadastro informa quando a API está indisponível", async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.route("**/v1/auth/sign-up/email", (route) => route.abort());
+
+  await page.goto("/entrar?modo=cadastro");
+  await page.getByLabel("Nome").fill("Teste sem API");
+  await page.getByLabel("E-mail").fill(`offline-${Date.now()}@bolao.local`);
+  await page
+    .getByRole("textbox", { name: "Senha", exact: true })
+    .fill("senha-segura-123");
+  await page.getByRole("button", { name: "Criar minha conta" }).click();
+
+  await expect(
+    page.getByRole("alert").filter({
+      hasText:
+        "Não foi possível conectar ao servidor. Confirme se a API está em execução e tente novamente.",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Criar minha conta" }),
+  ).toBeEnabled();
+  expect(pageErrors).toEqual([]);
+});
+
 test("usuário recebe confirmação visual depois de verificar o e-mail", async ({
   page,
 }) => {
