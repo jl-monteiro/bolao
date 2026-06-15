@@ -14,23 +14,51 @@ enum GroupRole {
   MEMBER
 }
 
+enum GroupInviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+enum PendingMembershipStatus {
+  PENDING
+  ACTIVATED
+  EXPIRED
+}
+
+enum AuditActorType {
+  USER
+  SYSTEM
+}
+
 enum AuditAction {
   GROUP_CREATED
   GROUP_UPDATED
+  GROUP_INVITE_ISSUED
+  GROUP_INVITE_REVOKED
+  GROUP_INVITE_ACCEPTED
+  GROUP_INVITE_EXPIRED
+  GROUP_PENDING_MEMBERSHIP_EXPIRED
+  GROUP_MEMBERSHIP_ACTIVATED
 }
 
 model User {
-  id            String            @id
-  name          String
-  email         String            @unique
-  emailVerified Boolean           @default(false)
-  image         String?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  sessions      Session[]
-  accounts      Account[]
-  memberships   GroupMembership[]
-  auditLogs     AuditLog[]        @relation("AuditActor")
+  id                 String                   @id
+  name               String
+  email              String                   @unique
+  emailVerified      Boolean                  @default(false)
+  image              String?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  sessions           Session[]
+  accounts           Account[]
+  memberships        GroupMembership[]
+  auditLogs          AuditLog[]               @relation("AuditActor")
+  issuedInvites      GroupInvite[]            @relation("InviteIssuer")
+  acceptedInvites    GroupInvite[]            @relation("InviteAcceptor")
+  revokedInvites     GroupInvite[]            @relation("InviteRevoker")
+  pendingMemberships GroupPendingMembership[]
 }
 
 model Session {
@@ -79,40 +107,91 @@ model Verification {
 }
 
 model Group {
-  id          String            @id @default(cuid())
-  name        String
-  description String?
-  image       String?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  memberships GroupMembership[]
-  auditLogs   AuditLog[]
+  id                 String                   @id @default(cuid())
+  name               String
+  description        String?
+  image              String?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  memberships        GroupMembership[]
+  invites            GroupInvite[]
+  pendingMemberships GroupPendingMembership[]
+  auditLogs          AuditLog[]
 }
 
 model GroupMembership {
-  id        String    @id @default(cuid())
-  role      GroupRole @default(MEMBER)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  groupId   String
-  userId    String
-  group     Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                   String                  @id @default(cuid())
+  role                 GroupRole               @default(MEMBER)
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  groupId              String
+  userId               String
+  group                Group                   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user                 User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activatedFromPending GroupPendingMembership? @relation("ActivatedMembership")
 
   @@unique([groupId, userId])
   @@index([userId])
 }
 
+model GroupInvite {
+  id                String                  @id @default(cuid())
+  targetEmail       String
+  tokenHash         String                  @unique
+  status            GroupInviteStatus       @default(PENDING)
+  issuedAt          DateTime                @default(now())
+  expiresAt         DateTime
+  acceptedAt        DateTime?
+  revokedAt         DateTime?
+  expiredAt         DateTime?
+  groupId           String
+  issuedById        String
+  acceptedById      String?
+  revokedById       String?
+  group             Group                   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  issuedBy          User                    @relation("InviteIssuer", fields: [issuedById], references: [id], onDelete: Restrict)
+  acceptedBy        User?                   @relation("InviteAcceptor", fields: [acceptedById], references: [id], onDelete: Restrict)
+  revokedBy         User?                   @relation("InviteRevoker", fields: [revokedById], references: [id], onDelete: Restrict)
+  pendingMembership GroupPendingMembership?
+
+  @@index([groupId, status, expiresAt])
+  @@index([issuedById])
+  @@index([acceptedById])
+  @@index([revokedById])
+  @@index([targetEmail, status])
+}
+
+model GroupPendingMembership {
+  id                    String                  @id @default(cuid())
+  status                PendingMembershipStatus @default(PENDING)
+  acceptedAt            DateTime                @default(now())
+  expiresAt             DateTime
+  activatedAt           DateTime?
+  expiredAt             DateTime?
+  groupId               String
+  userId                String
+  inviteId              String                  @unique
+  activatedMembershipId String?                 @unique
+  group                 Group                   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user                  User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invite                GroupInvite             @relation(fields: [inviteId], references: [id], onDelete: Restrict)
+  activatedMembership   GroupMembership?        @relation("ActivatedMembership", fields: [activatedMembershipId], references: [id], onDelete: Restrict)
+
+  @@index([groupId, status, expiresAt])
+  @@index([userId])
+}
+
 model AuditLog {
-  id             String      @id @default(cuid())
+  id             String         @id @default(cuid())
   action         AuditAction
-  actorId        String
+  actorType      AuditActorType @default(USER)
+  actorId        String?
   groupId        String
   previousValues Json?
   newValues      Json?
-  createdAt      DateTime    @default(now())
-  actor          User        @relation("AuditActor", fields: [actorId], references: [id], onDelete: Restrict)
-  group          Group       @relation(fields: [groupId], references: [id], onDelete: Restrict)
+  createdAt      DateTime       @default(now())
+  actor          User?          @relation("AuditActor", fields: [actorId], references: [id], onDelete: Restrict)
+  group          Group          @relation(fields: [groupId], references: [id], onDelete: Restrict)
 
   @@index([groupId, createdAt])
   @@index([actorId])
