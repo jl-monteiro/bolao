@@ -1,8 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "@/lib/auth-session";
-import { getGroups, type GroupRole } from "@/lib/groups-api";
+import {
+  getGroups,
+  getMyIncomingInvites,
+  getMyPendingMemberships,
+  type GroupRole,
+} from "@/lib/groups-api";
 import { CreateGroupForm } from "./create-group-form";
+import { MeInboxSection } from "./me-inbox-section";
+import { MePendingMembershipsSection } from "./me-pending-memberships-section";
 
 const roleLabels: Record<GroupRole, string> = {
   MEMBER: "Membro",
@@ -17,7 +24,13 @@ export default async function AppPage() {
     redirect("/entrar");
   }
 
-  const groups = await getGroups();
+  const [groups, incomingInvites, pendingMemberships] = await Promise.all([
+    getGroups(),
+    getMyIncomingInvites(),
+    getMyPendingMemberships(),
+  ]);
+
+  const showPendingHint = pendingMemberships.length > 0;
 
   return (
     <section className="app-dashboard" aria-labelledby="groups-title">
@@ -27,24 +40,28 @@ export default async function AppPage() {
           <h1 id="groups-title">Seus grupos</h1>
           <p>
             Organize as pessoas que vão participar dos seus próximos bolões.
-          </p>
-        </div>
+         </p>
+       </div>
         <CreateGroupForm />
-      </div>
+     </div>
+
+      <MeInboxSection invites={incomingInvites} />
+      <MePendingMembershipsSection memberships={pendingMemberships} />
 
       {groups.length === 0 ? (
         <div className="empty-state">
           <span aria-hidden="true" className="empty-state-mark">
             01
-          </span>
+         </span>
           <div>
-            <h2>Você ainda não participa de nenhum Grupo.</h2>
+            <h2>Você ainda não participa de nenhum Grupo</h2>
             <p>
-              Crie o primeiro espaço para reunir seus amigos e preparar os
-              próximos bolões.
-            </p>
-          </div>
-        </div>
+              {showPendingHint
+                ? "Aguarde a validação de identidade das suas pendências para acessar os Grupos."
+                : "Crie o primeiro espaço para reunir seus amigos e preparar os próximos bolões."}
+           </p>
+         </div>
+       </div>
       ) : (
         <div className="group-grid">
           {groups.map((group) => (
@@ -59,18 +76,18 @@ export default async function AppPage() {
                   <span>{roleLabels[group.role]}</span>
                   <span>
                     {group.description ? "Grupo ativo" : "Sem descrição"}
-                  </span>
-                </div>
+                 </span>
+               </div>
                 <h2>{group.name}</h2>
                 <p>
                   {group.description ??
                     "Abra o Grupo para consultar seus membros e detalhes."}
-                </p>
-              </article>
-            </Link>
+               </p>
+             </article>
+           </Link>
           ))}
-        </div>
+       </div>
       )}
-    </section>
+   </section>
   );
 }

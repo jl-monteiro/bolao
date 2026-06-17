@@ -13,6 +13,7 @@ type Feedback = {
 type AuthFormProps = {
   emailVerified?: boolean;
   initialMode?: AuthMode;
+  returnTo?: string;
 };
 
 const usesSandboxEmail =
@@ -23,6 +24,7 @@ const networkErrorMessage =
 export function AuthForm({
   emailVerified = false,
   initialMode = "sign-in",
+  returnTo = "/app",
 }: AuthFormProps) {
   const router = useRouter();
   const [mode, setMode] = useState<AuthMode>(initialMode);
@@ -49,8 +51,12 @@ export function AuthForm({
     try {
       if (mode === "sign-up") {
         const name = String(formData.get("name"));
+        const callbackParams = new URLSearchParams({ verificado: "1" });
+        if (returnTo !== "/app") {
+          callbackParams.set("retorno", returnTo);
+        }
         const { error } = await authClient.signUp.email({
-          callbackURL: `${window.location.origin}/entrar?verificado=1`,
+          callbackURL: `${window.location.origin}/entrar?${callbackParams}`,
           email,
           name,
           password,
@@ -81,7 +87,7 @@ export function AuthForm({
       });
 
       if (!error) {
-        router.replace("/app");
+        router.replace(returnTo);
         router.refresh();
         return;
       }

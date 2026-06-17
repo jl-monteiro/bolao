@@ -2,11 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   getGroup,
+  getGroupInvites,
   getGroupMembers,
+  getGroupPendingMembers,
   isGroupNotFoundError,
   type GroupRole,
 } from "@/lib/groups-api";
 import { EditGroupForm } from "./edit-group-form";
+import { GroupInvitesPanel } from "./group-invites-panel";
 
 const roleLabels: Record<GroupRole, string> = {
   MEMBER: "Membro",
@@ -31,10 +34,31 @@ function getInitials(name: string) {
 
 async function loadGroupDetail(groupId: string) {
   try {
-    return await Promise.all([
-      getGroup(groupId),
+    const group = await getGroup(groupId);
+    const canManageInvites =
+      group.role === "OWNER" || group.role === "ORGANIZER";
+    const [members, invitesResult, pendingMembersResult] = await Promise.all([
       getGroupMembers(groupId),
+      canManageInvites
+        ? getGroupInvites(groupId)
+            .then((value) => ({ ok: true as const, value }))
+            .catch(() => ({ ok: false as const, value: [] }))
+        : Promise.resolve({ ok: true as const, value: [] }),
+      canManageInvites
+        ? getGroupPendingMembers(groupId)
+            .then((value) => ({ ok: true as const, value }))
+            .catch(() => ({ ok: false as const, value: [] }))
+        : Promise.resolve({ ok: true as const, value: [] }),
     ]);
+
+    return {
+      group,
+      hasInviteLoadError:
+        !invitesResult.ok || !pendingMembersResult.ok,
+      invites: invitesResult.value,
+      members,
+      pendingMembers: pendingMembersResult.value,
+    };
   } catch (error) {
     if (isGroupNotFoundError(error)) {
       notFound();
@@ -48,7 +72,8 @@ export default async function GroupDetailPage({
   params,
 }: GroupDetailPageProps) {
   const { groupId } = await params;
-  const [group, members] = await loadGroupDetail(groupId);
+  const { group, hasInviteLoadError, invites, members, pendingMembers } =
+    await loadGroupDetail(groupId);
   const canEdit = group.role === "OWNER" || group.role === "ORGANIZER";
 
   return (
@@ -77,41 +102,52 @@ export default async function GroupDetailPage({
       </div>
 
       <div className="group-detail-grid">
-        <section
-          aria-label="Membros do Grupo"
-          className="members-panel"
-        >
-          <div className="panel-heading">
-            <div>
-              <p className="kicker">Pessoas</p>
-              <h2>Membros do Grupo</h2>
+        <div className="group-detail-primary">
+          <section
+            aria-label="Membros do Grupo"
+            className="members-panel"
+          >
+            <div className="panel-heading">
+              <div>
+                <p className="kicker">Pessoas</p>
+                <h2>Membros do Grupo</h2>
+              </div>
+              <span>{String(members.length).padStart(2, "0")}</span>
             </div>
-            <span>{String(members.length).padStart(2, "0")}</span>
-          </div>
 
-          <ul className="member-list">
-            {members.map((member) => (
-              <li className="member-row" key={member.id}>
-                <span aria-hidden="true" className="member-avatar">
-                  {getInitials(member.name)}
-                </span>
-                <div className="member-identity">
-                  <strong>{member.name}</strong>
-                  <span>
-                    Desde{" "}
-                    {new Intl.DateTimeFormat("pt-BR", {
-                      month: "short",
-                      year: "numeric",
-                    }).format(new Date(member.joinedAt))}
+            <ul className="member-list">
+              {members.map((member) => (
+                <li className="member-row" key={member.id}>
+                  <span aria-hidden="true" className="member-avatar">
+                    {getInitials(member.name)}
                   </span>
-                </div>
-                <span className="member-role">
-                  {roleLabels[member.role]}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
+                  <div className="member-identity">
+                    <strong>{member.name}</strong>
+                    <span>
+                      Desde{" "}
+                      {new Intl.DateTimeFormat("pt-BR", {
+                        month: "short",
+                        year: "numeric",
+                      }).format(new Date(member.joinedAt))}
+                    </span>
+                  </div>
+                  <span className="member-role">
+                    {roleLabels[member.role]}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {canEdit ? (
+            <GroupInvitesPanel
+              groupId={group.id}
+              hasLoadError={hasInviteLoadError}
+              invites={invites}
+              pendingMembers={pendingMembers}
+            />
+          ) : null}
+        </div>
 
         {canEdit ? (
           <EditGroupForm

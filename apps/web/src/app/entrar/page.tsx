@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "@/lib/auth-session";
+import { getSafeInviteReturnPath } from "@/lib/group-invites-contract";
 import { AuthForm } from "./auth-form";
 
 export const metadata: Metadata = {
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
 type EntrarPageProps = {
   searchParams: Promise<{
     modo?: string | string[];
+    retorno?: string | string[];
     verificado?: string | string[];
   }>;
 };
@@ -21,9 +23,10 @@ export default async function EntrarPage({ searchParams }: EntrarPageProps) {
     searchParams,
     getServerSession(),
   ]);
+  const returnTo = getSafeInviteReturnPath(params.retorno);
 
   if (session) {
-    redirect("/app");
+    redirect(returnTo);
   }
 
   const emailVerified = params.verificado === "1";
@@ -71,6 +74,7 @@ export default async function EntrarPage({ searchParams }: EntrarPageProps) {
           <AuthForm
             emailVerified={emailVerified}
             initialMode={initialMode}
+            returnTo={returnTo}
           />
         </section>
       </main>
