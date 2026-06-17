@@ -2,7 +2,7 @@ import {
   ForbiddenException,
   Injectable,
 } from "@nestjs/common";
-import type { PrismaClient } from "../generated/prisma/client.js";
+import { PrismaClient } from "../generated/prisma/client.js";
 import { GroupInviteStatus } from "../generated/prisma/enums.js";
 import {
   PendingMembershipStatus,
