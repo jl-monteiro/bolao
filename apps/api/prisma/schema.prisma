@@ -44,21 +44,24 @@ enum AuditAction {
 }
 
 model User {
-  id                 String                   @id
-  name               String
-  email              String                   @unique
-  emailVerified      Boolean                  @default(false)
-  image              String?
-  createdAt          DateTime                 @default(now())
-  updatedAt          DateTime                 @updatedAt
-  sessions           Session[]
-  accounts           Account[]
-  memberships        GroupMembership[]
-  auditLogs          AuditLog[]               @relation("AuditActor")
-  issuedInvites      GroupInvite[]            @relation("InviteIssuer")
-  acceptedInvites    GroupInvite[]            @relation("InviteAcceptor")
-  revokedInvites     GroupInvite[]            @relation("InviteRevoker")
-  pendingMemberships GroupPendingMembership[]
+  id                   String                   @id
+  name                 String
+  email                String                   @unique
+  emailVerified        Boolean                  @default(false)
+  image                String?
+  birthDate            DateTime?
+  cpf                  String?                  @unique
+  identityValidatedAt  DateTime?
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  sessions             Session[]
+  accounts             Account[]
+  memberships          GroupMembership[]
+  auditLogs            AuditLog[]               @relation("AuditActor")
+  issuedInvites        GroupInvite[]            @relation("InviteIssuer")
+  acceptedInvites      GroupInvite[]            @relation("InviteAcceptor")
+  revokedInvites       GroupInvite[]            @relation("InviteRevoker")
+  pendingMemberships   GroupPendingMembership[]
 }
 
 model Session {
