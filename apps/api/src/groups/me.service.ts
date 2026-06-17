@@ -2,25 +2,11 @@ import {
   ForbiddenException,
   Injectable,
 } from "@nestjs/common";
-import { Prisma } from "../generated/prisma/client.js";
 import type { PrismaClient } from "../generated/prisma/client.js";
 import { GroupInviteStatus } from "../generated/prisma/enums.js";
 import {
   PendingMembershipStatus,
 } from "../generated/prisma/enums.js";
-
-type IncomingGroupInviteRow = Prisma.GroupInviteGetPayload<{
-  include: {
-    group: { select: { id: true; name: true } };
-    issuedBy: { select: { id: true; name: true } };
-  };
-}>;
-
-type MePendingMembershipRow = Prisma.GroupPendingMembershipGetPayload<{
-  include: {
-    group: { select: { id: true; name: true } };
-  };
-}>;
 
 @Injectable()
 export class MeService {

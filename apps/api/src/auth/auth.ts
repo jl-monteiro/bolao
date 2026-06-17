@@ -1,13 +1,12 @@
 import { Logger } from "@nestjs/common";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { betterAuth } from "better-auth/minimal";
-import { createNotificationProvider } from "../notifications/notification-provider.js";
+import { notificationProvider } from "../notifications/notification-provider.js";
 import { buildVerificationEmail } from "../notifications/verification-email.js";
 import { prisma } from "../prisma/prisma-client.js";
 import { buildAuthOptions } from "./auth-options.js";
 
 const logger = new Logger("EmailVerification");
-const notificationProvider = createNotificationProvider(process.env);
 
 const options = buildAuthOptions({
   API_URL: process.env.API_URL ?? "http://localhost:3001",

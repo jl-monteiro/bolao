@@ -16,16 +16,19 @@ export type VerifiedUser = {
 type GroupRole = "OWNER" | "ORGANIZER" | "MEMBER";
 
 type GroupAuditLog = {
-  action: "GROUP_CREATED" | "GROUP_UPDATED";
-  actorId: string;
-  newValues: {
-    description: string | null;
-    name: string;
-  } | null;
-  previousValues: {
-    description: string | null;
-    name: string;
-  } | null;
+  action:
+    | "GROUP_CREATED"
+    | "GROUP_UPDATED"
+    | "GROUP_INVITE_ISSUED"
+    | "GROUP_INVITE_REVOKED"
+    | "GROUP_INVITE_ACCEPTED"
+    | "GROUP_INVITE_EXPIRED"
+    | "GROUP_PENDING_MEMBERSHIP_EXPIRED"
+    | "GROUP_MEMBERSHIP_ACTIVATED";
+  actorId: string | null;
+  actorType: "SYSTEM" | "USER";
+  newValues: Record<string, unknown> | null;
+  previousValues: Record<string, unknown> | null;
 };
 
 async function withDatabase<T>(
@@ -97,7 +100,7 @@ export async function getGroupAuditLogs(
 ): Promise<GroupAuditLog[]> {
   return withDatabase(async (database) => {
     const result = await database.query<GroupAuditLog>(
-      `SELECT "action", "actorId", "previousValues", "newValues"
+      `SELECT "action", "actorId", "actorType", "previousValues", "newValues"
        FROM "AuditLog"
        WHERE "groupId" = $1
        ORDER BY "createdAt" ASC`,
@@ -105,5 +108,23 @@ export async function getGroupAuditLogs(
     );
 
     return result.rows;
+  });
+}
+
+export async function getPendingMembershipCount(
+  groupId: string,
+  userId: string,
+): Promise<number> {
+  return withDatabase(async (database) => {
+    const result = await database.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS "count"
+       FROM "GroupPendingMembership"
+       WHERE "groupId" = $1
+         AND "userId" = $2
+         AND "status" = 'PENDING'`,
+      [groupId, userId],
+    );
+
+    return Number(result.rows[0].count);
   });
 }

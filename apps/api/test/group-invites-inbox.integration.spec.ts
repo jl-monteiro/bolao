@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { jest } from "@jest/globals";
 import type { PrismaClient } from "../src/generated/prisma/client.js";
 import { MeService } from "../src/groups/me.service.js";
 import { createTestPrismaClient } from "./database.js";

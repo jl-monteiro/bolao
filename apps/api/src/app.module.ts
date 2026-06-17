@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { ScheduleModule } from "@nestjs/schedule";
 import { AuthModule } from "@thallesp/nestjs-better-auth";
 import { auth } from "./auth/auth.js";
 import { GroupsModule } from "./groups/groups.module.js";
@@ -12,6 +13,7 @@ import { PrismaModule } from "./prisma/prisma.module.js";
       isGlobal: true,
       envFilePath: ["../../.env", ".env"],
     }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule.forRoot({
       auth,

@@ -18,4 +18,5 @@ module.exports = {
   coverageDirectory: "coverage",
   setupFiles: ["<rootDir>/test/setup-env.ts"],
   testEnvironment: "node",
+  testPathIgnorePatterns: ["/test/.*\\.integration\\.spec\\.ts$"],
 };

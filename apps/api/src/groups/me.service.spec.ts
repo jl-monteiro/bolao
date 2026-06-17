@@ -35,16 +35,19 @@ describe("MeService — listIncomingInvites", () => {
 
     expect(prisma.groupInvite.findMany).toHaveBeenCalledWith({
       orderBy: { expiresAt: "asc" },
-      select: expect.objectContaining({
-        id: true,
+      select: {
         expiresAt: true,
+        group: {
+          select: { id: true, name: true },
+        },
+        id: true,
         issuedAt: true,
+        issuedBy: {
+          select: { id: true, name: true },
+        },
         status: true,
-        group: expect.anything(),
-        issuedBy: expect.anything(),
-      }),
+      },
       where: {
-        group: undefined as never,
         status: "PENDING",
         targetEmail: "user@example.com",
       },

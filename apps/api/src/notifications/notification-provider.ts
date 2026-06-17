@@ -1,3 +1,4 @@
+import "../config/load-environment.js";
 import { Logger } from "@nestjs/common";
 import { Resend } from "resend";
 
@@ -10,6 +11,8 @@ export type EmailMessage = {
 export interface NotificationProvider {
   sendEmail(message: EmailMessage): Promise<void>;
 }
+
+export const NOTIFICATION_PROVIDER = Symbol("NotificationProvider");
 
 type NotificationEnvironment = {
   EMAIL_FROM?: string;
@@ -83,3 +86,7 @@ export function createNotificationProvider(
 
   return new ConsoleNotificationProvider(log);
 }
+
+export const notificationProvider = createNotificationProvider(
+  process.env,
+);

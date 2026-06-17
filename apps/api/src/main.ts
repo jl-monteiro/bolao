@@ -1,8 +1,9 @@
 import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
-import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { SwaggerModule } from "@nestjs/swagger";
 import { AppModule } from "./app.module.js";
+import { createOpenApiConfig } from "./openapi.js";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -25,14 +26,8 @@ async function bootstrap() {
     }),
   );
 
-  const openApiConfig = new DocumentBuilder()
-    .setTitle("Bolao API")
-    .setDescription("API da plataforma Bolao")
-    .setVersion("1.0")
-    .addCookieAuth("better-auth.session_token")
-    .build();
   const documentFactory = () =>
-    SwaggerModule.createDocument(app, openApiConfig);
+    SwaggerModule.createDocument(app, createOpenApiConfig());
   SwaggerModule.setup("docs", app, documentFactory, {
     jsonDocumentUrl: "openapi.json",
   });
