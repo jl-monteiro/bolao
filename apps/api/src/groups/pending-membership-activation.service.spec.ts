@@ -14,6 +14,7 @@ import {
 import { PendingMembershipActivationService } from "./pending-membership-activation.service.js";
 
 const NOW = new Date("2026-06-17T12:00:00.000Z");
+const MEMBERSHIP_ID = "11111111-1111-1111-1111-111111111111";
 
 function createPrismaMock() {
   const transaction = {
@@ -83,11 +84,8 @@ describe("PendingMembershipActivationService", () => {
     });
     prisma.transaction.groupMembership.create.mockResolvedValue({
       createdAt: NOW,
-      id: "membership-new",
+      id: MEMBERSHIP_ID,
       role: GroupRole.MEMBER,
-    });
-    prisma.transaction.groupPendingMembership.update.mockResolvedValue({
-      id: "pending-1",
     });
     prisma.transaction.auditLog.create.mockResolvedValue({
       id: "audit-1",
@@ -108,6 +106,7 @@ describe("PendingMembershipActivationService", () => {
     ).toHaveBeenCalledWith({
       data: {
         activatedAt: NOW,
+        activatedMembershipId: expect.any(String),
         status: PendingMembershipStatus.ACTIVATED,
       },
       where: {
@@ -119,8 +118,11 @@ describe("PendingMembershipActivationService", () => {
     });
     expect(prisma.transaction.groupMembership.create).toHaveBeenCalledWith({
       data: {
+        createdAt: NOW,
         groupId: "group-1",
+        id: expect.any(String),
         role: GroupRole.MEMBER,
+        updatedAt: NOW,
         userId: "user-1",
       },
       select: {
@@ -129,15 +131,18 @@ describe("PendingMembershipActivationService", () => {
         role: true,
       },
     });
-    expect(prisma.transaction.groupPendingMembership.update).toHaveBeenCalledWith(
-      {
-        data: {
-          activatedMembershipId: "membership-new",
-        },
-        where: {
-          id: "pending-1",
-        },
-      },
+    const transitionCall =
+      prisma.transaction.groupPendingMembership.updateMany.mock.calls[0]?.[0] as
+        | {
+            data: { activatedMembershipId: string };
+          }
+        | undefined;
+    const createCall =
+      prisma.transaction.groupMembership.create.mock.calls[0]?.[0] as
+        | { data: { id: string } }
+        | undefined;
+    expect(transitionCall?.data.activatedMembershipId).toBe(
+      createCall?.data.id,
     );
     expect(prisma.transaction.auditLog.create).toHaveBeenCalledWith({
       data: {
@@ -147,7 +152,7 @@ describe("PendingMembershipActivationService", () => {
         groupId: "group-1",
         newValues: {
           activatedAt: NOW.toISOString(),
-          membershipId: "membership-new",
+          membershipId: MEMBERSHIP_ID,
           pendingMembershipId: "pending-1",
           role: GroupRole.MEMBER,
           status: PendingMembershipStatus.ACTIVATED,
@@ -159,7 +164,9 @@ describe("PendingMembershipActivationService", () => {
       },
     });
   });
+});
 
+describe("PendingMembershipActivationService — secondary behaviours", () => {
   it("returns the same membership idempotently when already activated", async () => {
     const existingMembership = {
       createdAt: new Date("2026-06-10T12:00:00.000Z"),
@@ -205,9 +212,7 @@ describe("PendingMembershipActivationService", () => {
     await expect(
       service.activate("user-other", "pending-1"),
     ).rejects.toEqual(
-      new NotFoundException(
-        "Associação pendente não encontrada.",
-      ),
+      new NotFoundException("Associação pendente não encontrada."),
     );
     expect(
       prisma.transaction.groupPendingMembership.findFirst,
@@ -235,9 +240,7 @@ describe("PendingMembershipActivationService", () => {
     await expect(
       service.activate("user-1", "pending-1"),
     ).rejects.toEqual(
-      new GoneException(
-        "Esta associação pendente já expirou.",
-      ),
+      new GoneException("Esta associação pendente já expirou."),
     );
     expect(
       prisma.transaction.groupPendingMembership.updateMany,
@@ -259,9 +262,7 @@ describe("PendingMembershipActivationService", () => {
     await expect(
       service.activate("user-1", "pending-1"),
     ).rejects.toEqual(
-      new GoneException(
-        "Esta associação pendente já expirou.",
-      ),
+      new GoneException("Esta associação pendente já expirou."),
     );
     expect(
       prisma.transaction.groupPendingMembership.updateMany,

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import {
   ConflictException,
   ForbiddenException,
@@ -115,10 +116,12 @@ export class PendingMembershipActivationService {
           );
         }
 
+        const membershipId = randomUUID();
         const transition =
           await transaction.groupPendingMembership.updateMany({
             data: {
               activatedAt: now,
+              activatedMembershipId: membershipId,
               status: PendingMembershipStatus.ACTIVATED,
             },
             where: {
@@ -138,8 +141,11 @@ export class PendingMembershipActivationService {
         const membership =
           await transaction.groupMembership.create({
             data: {
+              createdAt: now,
               groupId: pending.groupId,
+              id: membershipId,
               role: GroupRole.MEMBER,
+              updatedAt: now,
               userId: actorUserId,
             },
             select: {
@@ -148,15 +154,6 @@ export class PendingMembershipActivationService {
               role: true,
             },
           });
-
-        await transaction.groupPendingMembership.update({
-          data: {
-            activatedMembershipId: membership.id,
-          },
-          where: {
-            id: pending.id,
-          },
-        });
 
         await transaction.auditLog.create({
           data: {
