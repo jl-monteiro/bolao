@@ -5,7 +5,7 @@ import {
   ConflictException,
   ForbiddenException,
 } from "@nestjs/common";
-import type { PrismaClient } from "../src/generated/prisma/client.js";
+import type { PrismaClient } from "../generated/prisma/client.js";
 import { IdentityService } from "./identity.service.js";
 
 const NOW = new Date("2026-06-17T12:00:00.000Z");
@@ -160,7 +160,10 @@ describe("IdentityService", () => {
     );
     const calls = prisma.user.update.mock.calls;
     assert.equal(calls.length, 1);
-    assert.equal(calls[0][0].where.id, "user-1");
+    assert.equal(
+      (calls[0]?.[0] as { where?: { id?: string } } | undefined)?.where?.id,
+      "user-1",
+    );
   });
 
   it("refuses submissions shorter than two separated tokens in the full name", async () => {

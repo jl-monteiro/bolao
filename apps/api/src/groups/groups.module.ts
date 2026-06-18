@@ -1,5 +1,13 @@
 import { Module } from "@nestjs/common";
 import {
+  ACTIVATION_CLOCK,
+  PendingMembershipActivationService,
+} from "./pending-membership-activation.service.js";
+import {
+  IDENTITY_CLOCK,
+  IdentityService,
+} from "../identity/identity.service.js";
+import {
   NOTIFICATION_PROVIDER,
   notificationProvider,
 } from "../notifications/notification-provider.js";
@@ -20,7 +28,19 @@ import { MeService } from "./me.service.js";
   controllers: [GroupInvitesController, GroupsController, MeController],
   providers: [
     {
+      provide: ACTIVATION_CLOCK,
+      useValue: {
+        now: () => new Date(),
+      },
+    },
+    {
       provide: GROUP_INVITE_CLOCK,
+      useValue: {
+        now: () => new Date(),
+      },
+    },
+    {
+      provide: IDENTITY_CLOCK,
       useValue: {
         now: () => new Date(),
       },
@@ -34,7 +54,9 @@ import { MeService } from "./me.service.js";
     GroupInvitesService,
     GroupRolePolicy,
     GroupsService,
+    IdentityService,
     MeService,
+    PendingMembershipActivationService,
   ],
 })
 export class GroupsModule {}
