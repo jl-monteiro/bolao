@@ -50,7 +50,7 @@ describe("OpenAPI /me contract", () => {
 
     const document = SwaggerModule.createDocument(
       app,
-      () => ({ addCookieAuth: () => ({ build: () => ({}) }) }),
+      {} as Parameters<typeof SwaggerModule.createDocument>[1],
     );
 
     expect(document.paths).toHaveProperty(

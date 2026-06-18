@@ -106,6 +106,7 @@ describe("PendingMembershipActivationService", () => {
     ).toHaveBeenCalledWith({
       data: {
         activatedAt: NOW,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         activatedMembershipId: expect.any(String),
         status: PendingMembershipStatus.ACTIVATED,
       },
@@ -120,6 +121,7 @@ describe("PendingMembershipActivationService", () => {
       data: {
         createdAt: NOW,
         groupId: "group-1",
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         id: expect.any(String),
         role: GroupRole.MEMBER,
         updatedAt: NOW,
