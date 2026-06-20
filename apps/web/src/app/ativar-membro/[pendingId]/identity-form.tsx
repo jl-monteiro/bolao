@@ -57,12 +57,14 @@ export function IdentityForm({
   const formError = state.status === "error" ? state.message : null;
 
   return (
-    <Card className="identity-activation-card">
+    <Card className="identity-activation-card animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-4 duration-500">
       <CardHeader className="identity-activation-header">
         <CardDescription className="kicker">
           Validação de identidade
         </CardDescription>
-        <CardTitle>{pendingMembership.group.name}</CardTitle>
+        <CardTitle>
+          <h2>{pendingMembership.group.name}</h2>
+        </CardTitle>
       </CardHeader>
       <CardContent className="identity-activation-content">
         <dl className="identity-activation-details">

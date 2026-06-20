@@ -61,7 +61,7 @@ export default async function ActivateMemberPage({
           aria-labelledby="member-activation-title"
           className="invite-accept-shell"
         >
-          <div className="invite-accept-intro">
+          <div className="invite-accept-intro animate-in fade-in-0 slide-in-from-left-4 duration-500">
             <p className="kicker">Ativação de membro</p>
             <h1 id="member-activation-title">Complete sua entrada.</h1>
             <p>
@@ -76,12 +76,14 @@ export default async function ActivateMemberPage({
               pendingMembership={pendingMembership}
             />
           ) : (
-            <Card className="identity-activation-card">
+            <Card className="identity-activation-card animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-4 duration-500">
               <CardHeader>
                 <CardDescription className="kicker">
                   Pendência indisponível
                 </CardDescription>
-                <CardTitle>Não encontramos esta ativação</CardTitle>
+                <CardTitle>
+                  <h2>Não encontramos esta ativação</h2>
+                </CardTitle>
               </CardHeader>
               <CardContent className="identity-activation-content">
                 <p>

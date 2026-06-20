@@ -1132,6 +1132,13 @@ svg {
   width: 100%;
 }
 
+.identity-activation-card h2 {
+  font-size: var(--text-xl);
+  line-height: 1.2;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 .identity-activation-content {
   display: flex;
   flex-direction: column;

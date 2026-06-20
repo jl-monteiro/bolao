@@ -35,6 +35,31 @@ function tokenFromAcceptUrl(acceptUrl: string): string {
   return token;
 }
 
+function computeCpfCheckDigit(base: string): number {
+  let sum = 0;
+
+  for (let index = 0; index < base.length; index += 1) {
+    sum += Number(base[index]) * (base.length + 1 - index);
+  }
+
+  const remainder = sum % 11;
+  return remainder < 2 ? 0 : 11 - remainder;
+}
+
+function buildValidCpf(): string {
+  const seed = Number.parseInt(
+    crypto.randomUUID().replace(/-/g, "").slice(0, 12),
+    16,
+  );
+  const firstNineDigits = String((seed % 900_000_000) + 100_000_000);
+  const firstCheckDigit = computeCpfCheckDigit(firstNineDigits);
+  const secondCheckDigit = computeCpfCheckDigit(
+    `${firstNineDigits}${firstCheckDigit}`,
+  );
+
+  return `${firstNineDigits}${firstCheckDigit}${secondCheckDigit}`;
+}
+
 describe("Identity submission and pending membership activation PostgreSQL", () => {
   let prisma: PrismaClient;
   let invites: GroupInvitesService;
@@ -43,6 +68,7 @@ describe("Identity submission and pending membership activation PostgreSQL", () 
   let ownerId: string;
   let invitedId: string;
   let groupId: string;
+  let identityCpf: string;
   let otherCpfUserId: string;
 
   beforeAll(() => {
@@ -72,6 +98,7 @@ describe("Identity submission and pending membership activation PostgreSQL", () 
     const suffix = crypto.randomUUID();
     ownerId = `owner-${suffix}`;
     invitedId = `invited-${suffix}`;
+    identityCpf = buildValidCpf();
     otherCpfUserId = "";
 
     await prisma.user.createMany({
@@ -143,17 +170,17 @@ describe("Identity submission and pending membership activation PostgreSQL", () 
 
     const result = await identity.submit(invitedId, {
       birthDate: "1990-05-15",
-      cpf: "111.444.777-35",
+      cpf: identityCpf,
       fullName: "Maria da Silva",
     });
 
-    expect(result).toMatchObject({ cpf: "11144477735" });
+    expect(result).toMatchObject({ cpf: identityCpf });
 
     const refreshedUser = await prisma.user.findUniqueOrThrow({
       where: { id: invitedId },
     });
     expect(refreshedUser.identityValidatedAt).toEqual(NOW);
-    expect(refreshedUser.cpf).toBe("11144477735");
+    expect(refreshedUser.cpf).toBe(identityCpf);
 
     const pending = await prisma.groupPendingMembership.findFirstOrThrow({
       where: { userId: invitedId, groupId },
@@ -205,7 +232,7 @@ describe("Identity submission and pending membership activation PostgreSQL", () 
 
     await identity.submit(invitedId, {
       birthDate: "1990-05-15",
-      cpf: "111.444.777-35",
+      cpf: identityCpf,
       fullName: "Maria da Silva",
     });
 
@@ -262,7 +289,7 @@ describe("Identity submission and pending membership activation PostgreSQL", () 
     const other = await prisma.user.create({
       data: {
         birthDate: new Date("1991-01-01T00:00:00.000Z"),
-        cpf: "11144477735",
+        cpf: identityCpf,
         email: `other-${crypto.randomUUID()}@bolao.local`,
         emailVerified: true,
         id: `other-${crypto.randomUUID()}`,
@@ -275,7 +302,7 @@ describe("Identity submission and pending membership activation PostgreSQL", () 
     await expect(
       identity.submit(invitedId, {
         birthDate: "1990-05-15",
-        cpf: "111.444.777-35",
+        cpf: identityCpf,
         fullName: "Maria da Silva",
       }),
     ).rejects.toBeInstanceOf(ConflictException);
@@ -291,7 +318,7 @@ describe("Identity submission and pending membership activation PostgreSQL", () 
 
     await identity.submit(invitedId, {
       birthDate: "1990-05-15",
-      cpf: "111.444.777-35",
+      cpf: identityCpf,
       fullName: "Maria da Silva",
     });
 
@@ -320,7 +347,7 @@ describe("Identity submission and pending membership activation PostgreSQL", () 
 
     await identity.submit(invitedId, {
       birthDate: "1990-05-15",
-      cpf: "111.444.777-35",
+      cpf: identityCpf,
       fullName: "Maria da Silva",
     });
 
