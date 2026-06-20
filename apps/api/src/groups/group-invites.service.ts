@@ -16,7 +16,6 @@ import {
   AuditAction,
   AuditActorType,
   GroupInviteStatus,
-  GroupRole,
   PendingMembershipStatus,
 } from "../generated/prisma/enums.js";
 import { buildGroupInviteAcceptUrl, buildGroupInviteEmail } from "../notifications/group-invite-email.js";
@@ -51,16 +50,6 @@ type InviteWithIssuer = {
   targetEmail: string;
 };
 
-type ActivatedMembershipWithUser = {
-  createdAt: Date;
-  id: string;
-  role: GroupRole;
-  user: {
-    image: string | null;
-    name: string;
-  };
-};
-
 type TokenOperationResult<T> =
   | { kind: "ok"; value: T }
   | { kind: "expired" }
@@ -90,18 +79,6 @@ function toInviteResponse(invite: InviteWithIssuer) {
     revokedAt: invite.revokedAt,
     status: invite.status,
     targetEmail: invite.targetEmail,
-  };
-}
-
-function toActivatedMemberResponse(
-  membership: ActivatedMembershipWithUser,
-) {
-  return {
-    id: membership.id,
-    image: membership.user.image,
-    joinedAt: membership.createdAt,
-    name: membership.user.name,
-    role: membership.role,
   };
 }
 
@@ -458,157 +435,6 @@ export class GroupInvitesService {
         status: PendingMembershipStatus.PENDING,
       },
     });
-  }
-
-  async activatePendingMember(
-    userId: string,
-    groupId: string,
-    pendingMemberId: string,
-  ) {
-    const activatedAt = this.clock.now();
-
-    try {
-      return await this.prisma.$transaction(async (transaction) => {
-        const membership =
-          await transaction.groupMembership.findUnique({
-            select: {
-              role: true,
-            },
-            where: {
-              groupId_userId: {
-                groupId,
-                userId,
-              },
-            },
-          });
-
-        if (!membership) {
-          throw new NotFoundException("Grupo nÃ£o encontrado.");
-        }
-
-        this.rolePolicy.assertCanActivatePendingMembers(
-          membership.role,
-        );
-
-        const pendingMembership =
-          await transaction.groupPendingMembership.findUnique({
-            select: {
-              expiresAt: true,
-              groupId: true,
-              id: true,
-              status: true,
-              userId: true,
-            },
-            where: {
-              groupId,
-              id: pendingMemberId,
-            },
-          });
-
-        if (!pendingMembership) {
-          throw new NotFoundException(
-            "Membro Pendente nÃ£o encontrado.",
-          );
-        }
-
-        const expired = await this.expirePendingMembershipIfDue(
-          transaction,
-          pendingMembership,
-          activatedAt,
-        );
-
-        if (expired) {
-          throw new GoneException("Este Membro Pendente expirou.");
-        }
-
-        if (pendingMembership.status !== PendingMembershipStatus.PENDING) {
-          throw new ConflictException(
-            "Somente Membros Pendentes podem ser ativados.",
-          );
-        }
-
-        const transition =
-          await transaction.groupPendingMembership.updateMany({
-            data: {
-              activatedAt,
-              status: PendingMembershipStatus.ACTIVATED,
-            },
-            where: {
-              expiresAt: {
-                gt: activatedAt,
-              },
-              groupId,
-              id: pendingMemberId,
-              status: PendingMembershipStatus.PENDING,
-            },
-          });
-
-        if (transition.count === 0) {
-          throw new ConflictException(
-            "Este Membro Pendente nÃ£o estÃ¡ mais disponÃ­vel para ativaÃ§Ã£o.",
-          );
-        }
-
-        const activatedMembership =
-          await transaction.groupMembership.create({
-            data: {
-              groupId,
-              role: GroupRole.MEMBER,
-              userId: pendingMembership.userId,
-            },
-            select: {
-              createdAt: true,
-              id: true,
-              role: true,
-              user: {
-                select: {
-                  image: true,
-                  name: true,
-                },
-              },
-            },
-          });
-
-        await transaction.groupPendingMembership.update({
-          data: {
-            activatedMembershipId: activatedMembership.id,
-          },
-          where: {
-            id: pendingMemberId,
-          },
-        });
-
-        await transaction.auditLog.create({
-          data: {
-            action: AuditAction.GROUP_MEMBERSHIP_ACTIVATED,
-            actorId: userId,
-            actorType: AuditActorType.USER,
-            groupId,
-            newValues: {
-              activatedAt: activatedAt.toISOString(),
-              membershipId: activatedMembership.id,
-              pendingMembershipId: pendingMemberId,
-              role: GroupRole.MEMBER,
-              status: PendingMembershipStatus.ACTIVATED,
-              userId: pendingMembership.userId,
-            },
-            previousValues: {
-              status: PendingMembershipStatus.PENDING,
-            },
-          },
-        });
-
-        return toActivatedMemberResponse(activatedMembership);
-      });
-    } catch (error: unknown) {
-      if (isUniqueConstraintError(error)) {
-        throw new ConflictException(
-          "Esta pessoa jÃ¡ Ã© membro deste Grupo.",
-        );
-      }
-
-      throw error;
-    }
   }
 
   async preview(userId: string, rawToken: string) {

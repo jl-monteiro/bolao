@@ -6,7 +6,10 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { Prisma } from "../generated/prisma/client.js";
+import {
+  Prisma,
+  PrismaClient,
+} from "../generated/prisma/client.js";
 import { isValidCpf, normaliseCpf } from "./cpf.js";
 
 export const IDENTITY_CLOCK = Symbol("IdentityClock");
@@ -61,7 +64,7 @@ function hasTwoSeparatedTokens(name: string): boolean {
 @Injectable()
 export class IdentityService {
   constructor(
-    private readonly prisma: import("../generated/prisma/client.js").PrismaClient,
+    private readonly prisma: PrismaClient,
     @Inject(IDENTITY_CLOCK)
     private readonly clock: IdentityClock,
   ) {}
@@ -100,6 +103,7 @@ export class IdentityService {
       select: {
         emailVerified: true,
         id: true,
+        identityValidatedAt: true,
       },
       where: { id: actorUserId },
     });
@@ -117,7 +121,7 @@ export class IdentityService {
     const data = {
       birthDate,
       cpf: normalisedCpf,
-      identityValidatedAt: now,
+      identityValidatedAt: user.identityValidatedAt ?? now,
       name: fullName,
     } satisfies Prisma.UserUpdateInput;
 

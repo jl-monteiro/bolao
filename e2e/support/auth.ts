@@ -128,3 +128,20 @@ export async function getPendingMembershipCount(
     return Number(result.rows[0].count);
   });
 }
+
+export async function getGroupMembershipCount(
+  groupId: string,
+  userId: string,
+): Promise<number> {
+  return withDatabase(async (database) => {
+    const result = await database.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS "count"
+       FROM "GroupMembership"
+       WHERE "groupId" = $1
+         AND "userId" = $2`,
+      [groupId, userId],
+    );
+
+    return Number(result.rows[0].count);
+  });
+}

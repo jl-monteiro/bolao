@@ -21,16 +21,6 @@ export class GroupRolePolicy {
     );
   }
 
-  assertCanActivatePendingMembers(role: GroupRole): void {
-    if (this.isAdministrativeRole(role)) {
-      return;
-    }
-
-    throw new ForbiddenException(
-      "VocÃª nÃ£o pode ativar Membros Pendentes deste Grupo.",
-    );
-  }
-
   private isAdministrativeRole(role: GroupRole): boolean {
     return role === GroupRole.OWNER || role === GroupRole.ORGANIZER;
   }

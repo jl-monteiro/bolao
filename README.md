@@ -35,7 +35,10 @@ OpenAPI: `http://localhost:3001/docs`
 - O aceite exige uma conta autenticada, com e-mail verificado e igual ao
   destinatario do Convite.
 - O aceite cria um `GroupPendingMembership` por 30 dias. Esse estado nao
-  concede acesso ao Grupo ate a futura validacao de identidade.
+  concede acesso ao Grupo ate a validacao de identidade.
+- A propria conta convidada valida nome completo, data de nascimento e CPF em
+  `/ativar-membro/:pendingId`; depois disso a pendencia vira
+  `GroupMembership(MEMBER)` de forma atomica.
 - Em desenvolvimento, sem credenciais do Resend, a mensagem e exibida no
   console da API.
 - O frontend troca o fragmento por um cookie `HttpOnly`, restrito às rotas de
@@ -50,4 +53,7 @@ DELETE /v1/groups/:groupId/invites/:inviteId
 GET    /v1/groups/:groupId/pending-members
 POST   /v1/group-invites/preview
 POST   /v1/group-invites/accept
+GET    /v1/me/pending-memberships
+POST   /v1/me/identity
+POST   /v1/me/pending-memberships/:pendingId/activate
 ```

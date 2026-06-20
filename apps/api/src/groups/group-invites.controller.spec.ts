@@ -13,14 +13,6 @@ const session = {
 function createServiceMock() {
   return {
     accept: jest.fn<(userId: string, token: string) => Promise<unknown>>(),
-    activatePendingMember:
-      jest.fn<
-        (
-          userId: string,
-          groupId: string,
-          pendingMemberId: string,
-        ) => Promise<unknown>
-      >(),
     issue:
       jest.fn<
         (
@@ -90,29 +82,4 @@ describe("GroupInvitesController", () => {
     );
   });
 
-  it("delegates pending member activation to the authenticated administrator", async () => {
-    const service = createServiceMock();
-    service.activatePendingMember.mockResolvedValue({
-      id: "membership-1",
-    });
-    const controller = new GroupInvitesController(
-      service as unknown as GroupInvitesService,
-    );
-
-    await expect(
-      controller.activatePendingMember(
-        session,
-        "group-1",
-        "pending-1",
-      ),
-    ).resolves.toEqual({
-      id: "membership-1",
-    });
-
-    expect(service.activatePendingMember).toHaveBeenCalledWith(
-      "user-1",
-      "group-1",
-      "pending-1",
-    );
-  });
 });

@@ -7,7 +7,10 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { Prisma } from "../generated/prisma/client.js";
+import {
+  Prisma,
+  PrismaClient,
+} from "../generated/prisma/client.js";
 import {
   AuditAction,
   AuditActorType,
@@ -40,7 +43,7 @@ function isUniqueConstraintError(error: unknown): boolean {
 @Injectable()
 export class PendingMembershipActivationService {
   constructor(
-    private readonly prisma: import("../generated/prisma/client.js").PrismaClient,
+    private readonly prisma: PrismaClient,
     @Inject(ACTIVATION_CLOCK)
     private readonly clock: ActivationClock,
   ) {}

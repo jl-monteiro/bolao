@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "@/lib/auth-session";
-import { getSafeInviteReturnPath } from "@/lib/group-invites-contract";
+import { getSafeAuthenticatedReturnPath } from "@/lib/group-invites-contract";
 import { AuthForm } from "./auth-form";
 
 export const metadata: Metadata = {
@@ -23,7 +23,7 @@ export default async function EntrarPage({ searchParams }: EntrarPageProps) {
     searchParams,
     getServerSession(),
   ]);
-  const returnTo = getSafeInviteReturnPath(params.retorno);
+  const returnTo = getSafeAuthenticatedReturnPath(params.retorno);
 
   if (session) {
     redirect(returnTo);

@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import {
+  Alert,
+  AlertDescription,
+} from "@/components/ui/alert";
 import { getServerSession } from "@/lib/auth-session";
 import {
   getGroups,
@@ -17,8 +21,19 @@ const roleLabels: Record<GroupRole, string> = {
   OWNER: "Proprietário",
 };
 
-export default async function AppPage() {
-  const session = await getServerSession();
+type AppPageSearchParams = {
+  ativacao?: string | string[];
+};
+
+type AppPageProps = {
+  searchParams?: Promise<AppPageSearchParams>;
+};
+
+export default async function AppPage({ searchParams }: AppPageProps) {
+  const [session, params] = await Promise.all([
+    getServerSession(),
+    searchParams ?? Promise.resolve<AppPageSearchParams>({}),
+  ]);
 
   if (!session) {
     redirect("/entrar");
@@ -31,6 +46,7 @@ export default async function AppPage() {
   ]);
 
   const showPendingHint = pendingMemberships.length > 0;
+  const activationCompleted = params.ativacao === "concluida";
 
   return (
     <section className="app-dashboard" aria-labelledby="groups-title">
@@ -43,7 +59,15 @@ export default async function AppPage() {
          </p>
        </div>
         <CreateGroupForm />
-     </div>
+      </div>
+
+      {activationCompleted ? (
+        <Alert className="app-page-feedback" role="status">
+          <AlertDescription>
+            Associação ativada. O Grupo já aparece na sua lista.
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       <MeInboxSection invites={incomingInvites} />
       <MePendingMembershipsSection memberships={pendingMemberships} />

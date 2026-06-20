@@ -29,7 +29,6 @@ import {
 import { auth } from "../auth/auth.js";
 import { AcceptGroupInviteDto } from "./dto/accept-group-invite.dto.js";
 import { CreateGroupInviteDto } from "./dto/create-group-invite.dto.js";
-import { GroupMemberResponseDto } from "./dto/group-member-response.dto.js";
 import {
   GroupInviteIssuedResponseDto,
   GroupInviteResponseDto,
@@ -131,32 +130,6 @@ export class GroupInvitesController {
     return this.groupInvitesService.listPendingMembers(
       session.user.id,
       groupId,
-    );
-  }
-
-  @Post("groups/:groupId/pending-members/:pendingMemberId/activate")
-  @HttpCode(HttpStatus.OK)
-  @ApiOkResponse({ type: GroupMemberResponseDto })
-  @ApiForbiddenResponse({
-    description:
-      "O papel atual nÃ£o permite ativar Membros Pendentes.",
-  })
-  @ApiNotFoundResponse({
-    description: "Grupo ou Membro Pendente nÃ£o encontrado.",
-  })
-  @ApiConflictResponse({
-    description: "A pendÃªncia nÃ£o pode mais ser ativada.",
-  })
-  @ApiGoneResponse({ description: "Membro Pendente expirado." })
-  activatePendingMember(
-    @Session() session: UserSession<typeof auth>,
-    @Param("groupId") groupId: string,
-    @Param("pendingMemberId") pendingMemberId: string,
-  ) {
-    return this.groupInvitesService.activatePendingMember(
-      session.user.id,
-      groupId,
-      pendingMemberId,
     );
   }
 

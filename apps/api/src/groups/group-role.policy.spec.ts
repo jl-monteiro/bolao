@@ -42,19 +42,4 @@ describe("GroupRolePolicy", () => {
       ),
     );
   });
-  it("allows administrators and forbids Members from activating pending members", () => {
-    expect(() =>
-      policy.assertCanActivatePendingMembers(GroupRole.OWNER),
-    ).not.toThrow();
-    expect(() =>
-      policy.assertCanActivatePendingMembers(GroupRole.ORGANIZER),
-    ).not.toThrow();
-    expect(() =>
-      policy.assertCanActivatePendingMembers(GroupRole.MEMBER),
-    ).toThrow(
-      new ForbiddenException(
-        "VocÃª nÃ£o pode ativar Membros Pendentes deste Grupo.",
-      ),
-    );
-  });
 });

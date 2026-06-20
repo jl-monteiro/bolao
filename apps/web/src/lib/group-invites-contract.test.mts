@@ -10,6 +10,7 @@ const {
   getApiErrorMessage,
   getInviteStatusLabel,
   getPendingMemberStatusLabel,
+  getSafeAuthenticatedReturnPath,
   getSafeInviteReturnPath,
   parseInviteAcceptance,
   parseInvitePreview,
@@ -28,6 +29,26 @@ test("accepts only the internal invitation return path", () => {
   assert.equal(getSafeInviteReturnPath("https://example.com"), "/app");
   assert.equal(getSafeInviteReturnPath("//example.com"), "/app");
   assert.equal(getSafeInviteReturnPath("/app"), "/app");
+});
+
+test("accepts only safe authenticated return paths", () => {
+  assert.equal(
+    getSafeAuthenticatedReturnPath("/convites/aceitar"),
+    "/convites/aceitar",
+  );
+  assert.equal(
+    getSafeAuthenticatedReturnPath("/ativar-membro/pending_123-ABC"),
+    "/ativar-membro/pending_123-ABC",
+  );
+  assert.equal(
+    getSafeAuthenticatedReturnPath("/ativar-membro/pending-1?next=/app"),
+    "/app",
+  );
+  assert.equal(
+    getSafeAuthenticatedReturnPath("https://example.com/ativar-membro/x"),
+    "/app",
+  );
+  assert.equal(getSafeAuthenticatedReturnPath("/app"), "/app");
 });
 
 test("builds a login URL without exposing the invitation token", () => {

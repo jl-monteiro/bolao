@@ -43,9 +43,6 @@ describe("OpenAPI invitation contract", () => {
     expect(document.paths).toHaveProperty(
       "/v1/groups/{groupId}/pending-members",
     );
-    expect(document.paths).toHaveProperty(
-      "/v1/groups/{groupId}/pending-members/{pendingMemberId}/activate",
-    );
     expect(document.paths).toHaveProperty("/v1/group-invites/preview");
     expect(document.paths).toHaveProperty("/v1/group-invites/accept");
     expectResponseCodes(
@@ -63,12 +60,6 @@ describe("OpenAPI invitation contract", () => {
       ["204", "401", "403", "404", "409"],
     );
     expectResponseCodes(
-      document.paths[
-        "/v1/groups/{groupId}/pending-members/{pendingMemberId}/activate"
-      ]?.post?.responses,
-      ["200", "401", "403", "404", "409", "410"],
-    );
-    expectResponseCodes(
       document.paths["/v1/group-invites/preview"]?.post?.responses,
       ["200", "400", "401", "403", "404", "410"],
     );
@@ -84,9 +75,6 @@ describe("OpenAPI invitation contract", () => {
     );
     expect(document.components?.schemas).toHaveProperty(
       "GroupInviteAcceptedResponseDto",
-    );
-    expect(document.components?.schemas).toHaveProperty(
-      "GroupMemberResponseDto",
     );
     expect(document.components?.schemas).toHaveProperty(
       "GroupInviteStatus",

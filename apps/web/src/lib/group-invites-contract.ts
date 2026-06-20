@@ -51,7 +51,9 @@ type ApiErrorPayload = {
 };
 
 const invitePath = "/convites/aceitar";
+const memberActivationPath = "/ativar-membro/";
 const tokenPattern = /^[A-Za-z0-9_-]+$/;
+const memberActivationSegmentPattern = /^[A-Za-z0-9_-]+$/;
 
 const inviteStatusLabels: Record<GroupInviteStatus, string> = {
   ACCEPTED: "Aceito",
@@ -66,12 +68,28 @@ const pendingMemberStatusLabels: Record<PendingMembershipStatus, string> = {
   PENDING: "Validação pendente",
 };
 
-export function getSafeInviteReturnPath(value: unknown): string {
-  if (typeof value !== "string" || !value.startsWith(invitePath)) {
+export function getSafeAuthenticatedReturnPath(value: unknown): string {
+  if (typeof value !== "string") {
     return "/app";
   }
 
-  return invitePath;
+  if (value.startsWith(invitePath)) {
+    return invitePath;
+  }
+
+  if (value.startsWith(memberActivationPath)) {
+    const segment = value.slice(memberActivationPath.length);
+
+    if (memberActivationSegmentPattern.test(segment)) {
+      return value;
+    }
+  }
+
+  return "/app";
+}
+
+export function getSafeInviteReturnPath(value: unknown): string {
+  return getSafeAuthenticatedReturnPath(value);
 }
 
 export function buildInviteLoginHref(): string {

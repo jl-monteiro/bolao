@@ -1,28 +1,13 @@
 "use client";
 
 import {
-  CheckCircle2Icon,
-} from "lucide-react";
-import {
   type FormEvent,
   useEffect,
   useRef,
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   getApiErrorMessage,
   getInviteStatusLabel,
@@ -89,9 +74,6 @@ export function GroupInvitesPanel({
   );
   const [emailError, setEmailError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
-  const [activatingMemberId, setActivatingMemberId] = useState<string | null>(
-    null,
-  );
   const [isCreating, setIsCreating] = useState(false);
   const [revokingInviteId, setRevokingInviteId] = useState<string | null>(null);
 
@@ -218,47 +200,6 @@ export function GroupInvitesPanel({
       });
     } finally {
       setRevokingInviteId(null);
-    }
-  }
-
-  async function activatePendingMember(pendingMemberId: string) {
-    setFeedback(null);
-    setActivatingMemberId(pendingMemberId);
-
-    try {
-      const response = await fetch(
-        `${apiUrl}/v1/groups/${groupId}/pending-members/${pendingMemberId}/activate`,
-        {
-          credentials: "include",
-          method: "POST",
-        },
-      );
-
-      if (!response.ok) {
-        const payload = await response.json().catch(() => null);
-        setFeedback({
-          message: getApiErrorMessage(
-            payload,
-            "NÃ£o foi possÃ­vel ativar o Membro Pendente. Tente novamente.",
-          ),
-          type: "error",
-        });
-        return;
-      }
-
-      setFeedback({
-        message: "Membro Pendente ativado.",
-        type: "success",
-      });
-      router.refresh();
-    } catch {
-      setFeedback({
-        message:
-          "NÃ£o foi possÃ­vel conectar ao servidor. Tente novamente em instantes.",
-        type: "error",
-      });
-    } finally {
-      setActivatingMemberId(null);
     }
   }
 
@@ -479,45 +420,9 @@ export function GroupInvitesPanel({
                   </dl>
                   {member.status === "PENDING" ? (
                     <div className="invite-row-actions">
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            disabled={activatingMemberId === member.id}
-                            size="sm"
-                            type="button"
-                          >
-                            <CheckCircle2Icon data-icon="inline-start" />
-                            Ativar membro
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              Ativar {member.user.name}?
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Confirme somente depois de validar a identidade
-                              da pessoa. A conta passa a acessar os dados
-                              privados deste Grupo.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel
-                              disabled={activatingMemberId === member.id}
-                            >
-                              Cancelar
-                            </AlertDialogCancel>
-                            <AlertDialogAction
-                              disabled={activatingMemberId === member.id}
-                              onClick={() => activatePendingMember(member.id)}
-                            >
-                              {activatingMemberId === member.id
-                                ? "Ativando..."
-                                : "Confirmar ativação"}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      <p className="pending-member-note">
+                        A ativação é concluída pela própria conta convidada.
+                      </p>
                     </div>
                   ) : null}
                 </li>

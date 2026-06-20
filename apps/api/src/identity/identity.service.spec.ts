@@ -77,6 +77,30 @@ describe("IdentityService", () => {
     });
   });
 
+  it("keeps the original identityValidatedAt on later submissions", async () => {
+    const prisma = createPrismaMock();
+    const originalValidation = new Date("2026-06-16T10:00:00.000Z");
+    prisma.user.findUnique.mockResolvedValue({
+      ...VALID_USER,
+      identityValidatedAt: originalValidation,
+    });
+    prisma.user.update.mockResolvedValue({
+      birthDate: new Date("1990-05-15T00:00:00.000Z"),
+      cpf: "11144477735",
+      identityValidatedAt: originalValidation,
+      name: "Maria da Silva",
+    });
+    const service = createService(prisma);
+
+    const result = await service.submit("user-1", INPUT);
+
+    const updateInput = prisma.user.update.mock.calls[0]?.[0] as
+      | { data?: { identityValidatedAt?: Date } }
+      | undefined;
+    assert.equal(updateInput?.data?.identityValidatedAt, originalValidation);
+    expect(result.identityValidatedAt).toBe(originalValidation);
+  });
+
   it("forbids staging identity for an unverified account", async () => {
     const prisma = createPrismaMock();
     prisma.user.findUnique.mockResolvedValue({

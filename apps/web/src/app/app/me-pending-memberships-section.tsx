@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   getPendingMemberStatusLabel,
   type MePendingMembership,
 } from "@/lib/group-invites-contract";
+import { buildMemberActivationPath } from "@/lib/identity-contract";
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "long",
@@ -44,11 +47,9 @@ export function MePendingMembershipsSection({
                 <strong>{membership.group.name}</strong>
                 <span>Validação de identidade pendente</span>
              </div>
-              <span
-                className={`invite-status invite-status-${membership.status.toLowerCase()}`}
-              >
+              <Badge variant="secondary">
                 {getPendingMemberStatusLabel(membership.status)}
-             </span>
+              </Badge>
            </div>
             <dl className="invite-metadata">
               <div>
@@ -68,13 +69,14 @@ export function MePendingMembershipsSection({
               Sua conta ainda não tem acesso aos dados privados do Grupo.
               Conclua a validação de identidade antes do prazo.
            </p>
-            <Link
-              aria-label={`Abrir detalhes do grupo ${membership.group.name}`}
-              className="text-button"
-              href={`/app/grupos/${membership.group.id}`}
-            >
-              Ver detalhes
-           </Link>
+            <Button asChild size="lg">
+              <Link
+                aria-label={`Validar identidade e ativar participação em ${membership.group.name}`}
+                href={buildMemberActivationPath(membership.id)}
+              >
+                Validar e ativar
+              </Link>
+            </Button>
          </li>
         ))}
      </ul>
