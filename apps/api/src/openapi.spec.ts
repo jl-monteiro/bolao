@@ -4,6 +4,8 @@ import { GroupInvitesController } from "./groups/group-invites.controller.js";
 import { GroupInvitesService } from "./groups/group-invites.service.js";
 import { GroupsController } from "./groups/groups.controller.js";
 import { GroupsService } from "./groups/groups.service.js";
+import { OwnershipTransferController } from "./groups/ownership-transfer.controller.js";
+import { OwnershipTransferService } from "./groups/ownership-transfer.service.js";
 import { createOpenApiConfig } from "./openapi.js";
 
 function expectResponseCodes(
@@ -18,7 +20,11 @@ function expectResponseCodes(
 describe("OpenAPI invitation contract", () => {
   it("documents invitation paths, cookie auth, schemas, and response codes", async () => {
     const moduleRef = await Test.createTestingModule({
-      controllers: [GroupInvitesController, GroupsController],
+      controllers: [
+        GroupInvitesController,
+        GroupsController,
+        OwnershipTransferController,
+      ],
       providers: [
         {
           provide: GroupInvitesService,
@@ -26,6 +32,10 @@ describe("OpenAPI invitation contract", () => {
         },
         {
           provide: GroupsService,
+          useValue: {},
+        },
+        {
+          provide: OwnershipTransferService,
           useValue: {},
         },
       ],
@@ -52,6 +62,18 @@ describe("OpenAPI invitation contract", () => {
     expect(document.paths).toHaveProperty(
       "/v1/groups/{groupId}/members/{membershipId}/role",
     );
+    expect(document.paths).toHaveProperty(
+      "/v1/groups/{groupId}/ownership-transfers",
+    );
+    expect(document.paths).toHaveProperty(
+      "/v1/groups/{groupId}/ownership-transfers/{transferId}",
+    );
+    expect(document.paths).toHaveProperty(
+      "/v1/me/ownership-transfers",
+    );
+    expect(document.paths).toHaveProperty(
+      "/v1/me/ownership-transfers/{transferId}/accept",
+    );
     expect(document.paths).toHaveProperty("/v1/group-invites/preview");
     expect(document.paths).toHaveProperty("/v1/group-invites/accept");
     expectResponseCodes(
@@ -73,6 +95,32 @@ describe("OpenAPI invitation contract", () => {
         "/v1/groups/{groupId}/members/{membershipId}/role"
       ]?.patch?.responses,
       ["200", "400", "401", "403", "404"],
+    );
+    expectResponseCodes(
+      document.paths["/v1/groups/{groupId}/ownership-transfers"]?.post
+        ?.responses,
+      ["201", "400", "401", "403", "404", "409"],
+    );
+    expectResponseCodes(
+      document.paths["/v1/groups/{groupId}/ownership-transfers"]?.get
+        ?.responses,
+      ["200", "401", "403", "404"],
+    );
+    expectResponseCodes(
+      document.paths[
+        "/v1/groups/{groupId}/ownership-transfers/{transferId}"
+      ]?.delete?.responses,
+      ["204", "401", "403", "404", "409", "410"],
+    );
+    expectResponseCodes(
+      document.paths["/v1/me/ownership-transfers"]?.get?.responses,
+      ["200", "401"],
+    );
+    expectResponseCodes(
+      document.paths[
+        "/v1/me/ownership-transfers/{transferId}/accept"
+      ]?.post?.responses,
+      ["200", "400", "401", "403", "404", "409", "410"],
     );
     expectResponseCodes(
       document.paths["/v1/group-invites/preview"]?.post?.responses,
@@ -99,6 +147,18 @@ describe("OpenAPI invitation contract", () => {
     );
     expect(document.components?.schemas).toHaveProperty(
       "UpdateGroupMemberRoleDto",
+    );
+    expect(document.components?.schemas).toHaveProperty(
+      "CreateOwnershipTransferDto",
+    );
+    expect(document.components?.schemas).toHaveProperty(
+      "AcceptOwnershipTransferDto",
+    );
+    expect(document.components?.schemas).toHaveProperty(
+      "OwnershipTransferResponseDto",
+    );
+    expect(document.components?.schemas).toHaveProperty(
+      "GroupOwnershipTransferStatus",
     );
     expect(
       JSON.stringify(

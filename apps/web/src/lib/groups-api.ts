@@ -8,6 +8,8 @@ import type {
   MePendingMembership,
 } from "@/lib/group-invites-contract";
 import type { GroupMember, GroupRole } from "@/lib/group-members-contract";
+import type { MfaStatus } from "@/lib/mfa-contract";
+import type { OwnershipTransfer } from "@/lib/ownership-transfer-contract";
 
 export type { GroupMember, GroupRole } from "@/lib/group-members-contract";
 
@@ -94,6 +96,14 @@ export function getGroupPendingMembers(
   );
 }
 
+export function getGroupOwnershipTransfers(
+  groupId: string,
+): Promise<OwnershipTransfer[]> {
+  return getProtectedResource<OwnershipTransfer[]>(
+    `/v1/groups/${groupId}/ownership-transfers`,
+  );
+}
+
 export function getMyIncomingInvites(): Promise<IncomingGroupInvite[]> {
   return getProtectedResource<IncomingGroupInvite[]>(
     "/v1/me/incoming-invites",
@@ -104,4 +114,14 @@ export function getMyPendingMemberships(): Promise<MePendingMembership[]> {
   return getProtectedResource<MePendingMembership[]>(
     "/v1/me/pending-memberships",
   );
+}
+
+export function getMyOwnershipTransfers(): Promise<OwnershipTransfer[]> {
+  return getProtectedResource<OwnershipTransfer[]>(
+    "/v1/me/ownership-transfers",
+  );
+}
+
+export function getMyMfaStatus(): Promise<MfaStatus> {
+  return getProtectedResource<MfaStatus>("/v1/me/mfa");
 }

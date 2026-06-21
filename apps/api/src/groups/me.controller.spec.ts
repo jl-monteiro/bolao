@@ -2,6 +2,7 @@ import { jest } from "@jest/globals";
 import type { UserSession } from "@thallesp/nestjs-better-auth";
 import { auth } from "../auth/auth.js";
 import type { IdentityService } from "../identity/identity.service.js";
+import type { MfaService } from "../mfa/mfa.service.js";
 import type { PendingMembershipActivationService } from "./pending-membership-activation.service.js";
 import { MeController } from "./me.controller.js";
 import type { MeService } from "./me.service.js";
@@ -30,6 +31,15 @@ function createActivationServiceMock() {
   };
 }
 
+function createMfaServiceMock() {
+  return {
+    beginSetup: jest.fn<(userId: string) => Promise<unknown>>(),
+    confirmSetup:
+      jest.fn<(userId: string, code: string) => Promise<unknown>>(),
+    getStatus: jest.fn<(userId: string) => Promise<unknown>>(),
+  };
+}
+
 describe("MeController", () => {
   it("delegates listIncomingInvites to the authenticated user", async () => {
     const service = createMeServiceMock();
@@ -38,6 +48,7 @@ describe("MeController", () => {
       service as unknown as MeService,
       createIdentityServiceMock() as unknown as IdentityService,
       createActivationServiceMock() as unknown as PendingMembershipActivationService,
+      createMfaServiceMock() as unknown as MfaService,
     );
 
     await controller.incomingInvites(session);
@@ -52,6 +63,7 @@ describe("MeController", () => {
       service as unknown as MeService,
       createIdentityServiceMock() as unknown as IdentityService,
       createActivationServiceMock() as unknown as PendingMembershipActivationService,
+      createMfaServiceMock() as unknown as MfaService,
     );
 
     await controller.pendingMemberships(session);
@@ -66,6 +78,7 @@ describe("MeController", () => {
       createMeServiceMock() as unknown as MeService,
       identity as unknown as IdentityService,
       createActivationServiceMock() as unknown as PendingMembershipActivationService,
+      createMfaServiceMock() as unknown as MfaService,
     );
 
     await expect(
@@ -93,6 +106,7 @@ describe("MeController", () => {
       createMeServiceMock() as unknown as MeService,
       createIdentityServiceMock() as unknown as IdentityService,
       activation as unknown as PendingMembershipActivationService,
+      createMfaServiceMock() as unknown as MfaService,
     );
 
     await expect(
@@ -103,5 +117,51 @@ describe("MeController", () => {
     });
 
     expect(activation.activate).toHaveBeenCalledWith("user-1", "pending-1");
+  });
+
+  it("delegates MFA status to the authenticated user", async () => {
+    const mfa = createMfaServiceMock();
+    mfa.getStatus.mockResolvedValue({
+      enabledAt: null,
+      totpEnabled: false,
+    });
+    const controller = new MeController(
+      createMeServiceMock() as unknown as MeService,
+      createIdentityServiceMock() as unknown as IdentityService,
+      createActivationServiceMock() as unknown as PendingMembershipActivationService,
+      mfa as unknown as MfaService,
+    );
+
+    await expect(controller.mfaStatus(session)).resolves.toEqual({
+      enabledAt: null,
+      totpEnabled: false,
+    });
+    expect(mfa.getStatus).toHaveBeenCalledWith("user-1");
+  });
+
+  it("delegates MFA setup and confirmation to the authenticated user", async () => {
+    const mfa = createMfaServiceMock();
+    mfa.beginSetup.mockResolvedValue({ secret: "ABC" });
+    mfa.confirmSetup.mockResolvedValue({
+      enabledAt: new Date("2026-06-21T12:00:00.000Z"),
+      totpEnabled: true,
+    });
+    const controller = new MeController(
+      createMeServiceMock() as unknown as MeService,
+      createIdentityServiceMock() as unknown as IdentityService,
+      createActivationServiceMock() as unknown as PendingMembershipActivationService,
+      mfa as unknown as MfaService,
+    );
+
+    await expect(controller.mfaSetup(session)).resolves.toEqual({
+      secret: "ABC",
+    });
+    await expect(
+      controller.mfaConfirm(session, { code: "123456" }),
+    ).resolves.toMatchObject({
+      totpEnabled: true,
+    });
+    expect(mfa.beginSetup).toHaveBeenCalledWith("user-1");
+    expect(mfa.confirmSetup).toHaveBeenCalledWith("user-1", "123456");
   });
 });

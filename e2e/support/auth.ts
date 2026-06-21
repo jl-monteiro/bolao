@@ -25,7 +25,11 @@ type GroupAuditLog = {
     | "GROUP_INVITE_EXPIRED"
     | "GROUP_PENDING_MEMBERSHIP_EXPIRED"
     | "GROUP_MEMBERSHIP_ACTIVATED"
-    | "GROUP_MEMBER_ROLE_UPDATED";
+    | "GROUP_MEMBER_ROLE_UPDATED"
+    | "GROUP_OWNERSHIP_TRANSFER_REQUESTED"
+    | "GROUP_OWNERSHIP_TRANSFER_REVOKED"
+    | "GROUP_OWNERSHIP_TRANSFER_EXPIRED"
+    | "GROUP_OWNERSHIP_TRANSFER_ACCEPTED";
   actorId: string | null;
   actorType: "SYSTEM" | "USER";
   newValues: Record<string, unknown> | null;
@@ -144,5 +148,22 @@ export async function getGroupMembershipCount(
     );
 
     return Number(result.rows[0].count);
+  });
+}
+
+export async function getGroupMembershipRole(
+  groupId: string,
+  userId: string,
+): Promise<GroupRole | null> {
+  return withDatabase(async (database) => {
+    const result = await database.query<{ role: GroupRole }>(
+      `SELECT "role"
+       FROM "GroupMembership"
+       WHERE "groupId" = $1
+         AND "userId" = $2`,
+      [groupId, userId],
+    );
+
+    return result.rows[0]?.role ?? null;
   });
 }

@@ -27,6 +27,10 @@ import { auth } from "../auth/auth.js";
 import { SubmitIdentityDto } from "../identity/dto/submit-identity.dto.js";
 import { SubmitIdentityResponseDto } from "../identity/dto/submit-identity-response.dto.js";
 import { IdentityService } from "../identity/identity.service.js";
+import { ConfirmMfaDto } from "../mfa/dto/confirm-mfa.dto.js";
+import { MfaSetupResponseDto } from "../mfa/dto/mfa-setup-response.dto.js";
+import { MfaStatusResponseDto } from "../mfa/dto/mfa-status-response.dto.js";
+import { MfaService } from "../mfa/mfa.service.js";
 import { ActivatedPendingMembershipResponseDto } from "./dto/activated-pending-membership-response.dto.js";
 import { IncomingGroupInviteDto } from "./dto/incoming-group-invite.dto.js";
 import { MePendingMembershipDto } from "./dto/me-pending-membership.dto.js";
@@ -42,6 +46,7 @@ export class MeController {
     private readonly meService: MeService,
     private readonly identityService: IdentityService,
     private readonly pendingMembershipActivationService: PendingMembershipActivationService,
+    private readonly mfaService: MfaService,
   ) {}
 
   @Get("incoming-invites")
@@ -57,6 +62,33 @@ export class MeController {
   })
   pendingMemberships(@Session() session: UserSession<typeof auth>) {
     return this.meService.listPendingMemberships(session.user.id);
+  }
+
+  @Get("mfa")
+  @ApiOkResponse({ type: MfaStatusResponseDto })
+  mfaStatus(@Session() session: UserSession<typeof auth>) {
+    return this.mfaService.getStatus(session.user.id);
+  }
+
+  @Post("mfa/totp/setup")
+  @HttpCode(HttpStatus.CREATED)
+  @ApiCreatedResponse({ type: MfaSetupResponseDto })
+  @ApiBadRequestResponse({ description: "MFA TOTP já está ativo." })
+  mfaSetup(@Session() session: UserSession<typeof auth>) {
+    return this.mfaService.beginSetup(session.user.id);
+  }
+
+  @Post("mfa/totp/confirm")
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ type: MfaStatusResponseDto })
+  @ApiBadRequestResponse({
+    description: "Configuração ausente ou código inválido.",
+  })
+  mfaConfirm(
+    @Session() session: UserSession<typeof auth>,
+    @Body() input: ConfirmMfaDto,
+  ) {
+    return this.mfaService.confirmSetup(session.user.id, input.code);
   }
 
   @Post("identity")

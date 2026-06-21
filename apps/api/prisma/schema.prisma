@@ -27,6 +27,13 @@ enum PendingMembershipStatus {
   EXPIRED
 }
 
+enum GroupOwnershipTransferStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
 enum AuditActorType {
   USER
   SYSTEM
@@ -42,6 +49,10 @@ enum AuditAction {
   GROUP_PENDING_MEMBERSHIP_EXPIRED
   GROUP_MEMBERSHIP_ACTIVATED
   GROUP_MEMBER_ROLE_UPDATED
+  GROUP_OWNERSHIP_TRANSFER_REQUESTED
+  GROUP_OWNERSHIP_TRANSFER_REVOKED
+  GROUP_OWNERSHIP_TRANSFER_EXPIRED
+  GROUP_OWNERSHIP_TRANSFER_ACCEPTED
 }
 
 model User {
@@ -53,6 +64,8 @@ model User {
   birthDate            DateTime?
   cpf                  String?                  @unique
   identityValidatedAt  DateTime?
+  totpSecretEncrypted  String?
+  totpEnabledAt        DateTime?
   createdAt            DateTime                 @default(now())
   updatedAt            DateTime                 @updatedAt
   sessions             Session[]
@@ -62,6 +75,9 @@ model User {
   issuedInvites        GroupInvite[]            @relation("InviteIssuer")
   acceptedInvites      GroupInvite[]            @relation("InviteAcceptor")
   revokedInvites       GroupInvite[]            @relation("InviteRevoker")
+  requestedOwnershipTransfers GroupOwnershipTransfer[] @relation("OwnershipTransferRequester")
+  acceptedOwnershipTransfers  GroupOwnershipTransfer[] @relation("OwnershipTransferAcceptor")
+  revokedOwnershipTransfers   GroupOwnershipTransfer[] @relation("OwnershipTransferRevoker")
   pendingMemberships   GroupPendingMembership[]
 }
 
@@ -120,6 +136,7 @@ model Group {
   memberships        GroupMembership[]
   invites            GroupInvite[]
   pendingMemberships GroupPendingMembership[]
+  ownershipTransfers GroupOwnershipTransfer[]
   auditLogs          AuditLog[]
 }
 
@@ -133,6 +150,8 @@ model GroupMembership {
   group                Group                   @relation(fields: [groupId], references: [id], onDelete: Cascade)
   user                 User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   activatedFromPending GroupPendingMembership? @relation("ActivatedMembership")
+  requestedOwnershipTransfers GroupOwnershipTransfer[] @relation("OwnershipTransferCurrentOwner")
+  targetedOwnershipTransfers GroupOwnershipTransfer[] @relation("OwnershipTransferTarget")
 
   @@unique([groupId, userId])
   @@index([userId])
@@ -183,6 +202,32 @@ model GroupPendingMembership {
 
   @@index([groupId, status, expiresAt])
   @@index([userId])
+}
+
+model GroupOwnershipTransfer {
+  id                 String                       @id @default(cuid())
+  status             GroupOwnershipTransferStatus @default(PENDING)
+  requestedAt        DateTime                     @default(now())
+  expiresAt          DateTime
+  acceptedAt         DateTime?
+  revokedAt          DateTime?
+  expiredAt          DateTime?
+  groupId            String
+  requestedById      String
+  currentOwnerMembershipId String
+  targetMembershipId String
+  acceptedById       String?
+  revokedById        String?
+  group              Group           @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  requestedBy        User            @relation("OwnershipTransferRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  currentOwnerMembership GroupMembership @relation("OwnershipTransferCurrentOwner", fields: [currentOwnerMembershipId], references: [id], onDelete: Restrict)
+  targetMembership   GroupMembership @relation("OwnershipTransferTarget", fields: [targetMembershipId], references: [id], onDelete: Restrict)
+  acceptedBy         User?           @relation("OwnershipTransferAcceptor", fields: [acceptedById], references: [id], onDelete: Restrict)
+  revokedBy          User?           @relation("OwnershipTransferRevoker", fields: [revokedById], references: [id], onDelete: Restrict)
+
+  @@index([groupId, status, expiresAt])
+  @@index([currentOwnerMembershipId])
+  @@index([targetMembershipId, status, expiresAt])
 }
 
 model AuditLog {

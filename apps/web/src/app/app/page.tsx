@@ -7,12 +7,15 @@ import {
 import { getServerSession } from "@/lib/auth-session";
 import {
   getGroups,
+  getMyMfaStatus,
   getMyIncomingInvites,
+  getMyOwnershipTransfers,
   getMyPendingMemberships,
   type GroupRole,
 } from "@/lib/groups-api";
 import { CreateGroupForm } from "./create-group-form";
 import { MeInboxSection } from "./me-inbox-section";
+import { MeOwnershipTransfersSection } from "./me-ownership-transfers-section";
 import { MePendingMembershipsSection } from "./me-pending-memberships-section";
 
 const roleLabels: Record<GroupRole, string> = {
@@ -39,11 +42,14 @@ export default async function AppPage({ searchParams }: AppPageProps) {
     redirect("/entrar");
   }
 
-  const [groups, incomingInvites, pendingMemberships] = await Promise.all([
-    getGroups(),
-    getMyIncomingInvites(),
-    getMyPendingMemberships(),
-  ]);
+  const [groups, incomingInvites, pendingMemberships, ownershipTransfers, mfa] =
+    await Promise.all([
+      getGroups(),
+      getMyIncomingInvites(),
+      getMyPendingMemberships(),
+      getMyOwnershipTransfers(),
+      getMyMfaStatus(),
+    ]);
 
   const showPendingHint = pendingMemberships.length > 0;
   const activationCompleted = params.ativacao === "concluida";
@@ -70,6 +76,10 @@ export default async function AppPage({ searchParams }: AppPageProps) {
       ) : null}
 
       <MeInboxSection invites={incomingInvites} />
+      <MeOwnershipTransfersSection
+        mfaEnabled={mfa.totpEnabled}
+        transfers={ownershipTransfers}
+      />
       <MePendingMembershipsSection memberships={pendingMemberships} />
 
       {groups.length === 0 ? (

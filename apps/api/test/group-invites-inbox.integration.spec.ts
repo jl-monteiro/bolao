@@ -18,6 +18,7 @@ describe("MeService inbox", () => {
 
   beforeEach(async () => {
     await prisma.auditLog.deleteMany({});
+    await prisma.groupOwnershipTransfer.deleteMany({});
     await prisma.groupPendingMembership.deleteMany({});
     await prisma.groupInvite.deleteMany({});
     await prisma.groupMembership.deleteMany({});

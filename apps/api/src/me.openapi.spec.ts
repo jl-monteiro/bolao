@@ -5,6 +5,7 @@ import { IDENTITY_CLOCK } from "./identity/identity.service.js";
 import { IdentityService } from "./identity/identity.service.js";
 import { MeController } from "./groups/me.controller.js";
 import { MeService } from "./groups/me.service.js";
+import { MfaService } from "./mfa/mfa.service.js";
 import { PendingMembershipActivationService } from "./groups/pending-membership-activation.service.js";
 
 function expectResponseCodes(
@@ -34,6 +35,10 @@ describe("OpenAPI /me contract", () => {
           useValue: {},
         },
         {
+          provide: MfaService,
+          useValue: {},
+        },
+        {
           provide: IDENTITY_CLOCK,
           useValue: { now: () => new Date() },
         },
@@ -57,6 +62,9 @@ describe("OpenAPI /me contract", () => {
       "/v1/me/pending-memberships/{pendingId}/activate",
     );
     expect(document.paths).toHaveProperty("/v1/me/identity");
+    expect(document.paths).toHaveProperty("/v1/me/mfa");
+    expect(document.paths).toHaveProperty("/v1/me/mfa/totp/setup");
+    expect(document.paths).toHaveProperty("/v1/me/mfa/totp/confirm");
 
     expectResponseCodes(
       document.paths["/v1/me/identity"]?.post?.responses,
@@ -68,6 +76,18 @@ describe("OpenAPI /me contract", () => {
       ]?.post?.responses,
       ["200", "401", "403", "404", "409", "410"],
     );
+    expectResponseCodes(
+      document.paths["/v1/me/mfa"]?.get?.responses,
+      ["200", "401"],
+    );
+    expectResponseCodes(
+      document.paths["/v1/me/mfa/totp/setup"]?.post?.responses,
+      ["201", "400", "401"],
+    );
+    expectResponseCodes(
+      document.paths["/v1/me/mfa/totp/confirm"]?.post?.responses,
+      ["200", "400", "401"],
+    );
 
     expect(document.components?.schemas).toHaveProperty(
       "SubmitIdentityDto",
@@ -78,6 +98,13 @@ describe("OpenAPI /me contract", () => {
     expect(document.components?.schemas).toHaveProperty(
       "ActivatedPendingMembershipResponseDto",
     );
+    expect(document.components?.schemas).toHaveProperty(
+      "MfaStatusResponseDto",
+    );
+    expect(document.components?.schemas).toHaveProperty(
+      "MfaSetupResponseDto",
+    );
+    expect(document.components?.schemas).toHaveProperty("ConfirmMfaDto");
 
     await app.close();
   });

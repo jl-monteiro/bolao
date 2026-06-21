@@ -4,6 +4,7 @@ import {
   getGroup,
   getGroupInvites,
   getGroupMembers,
+  getGroupOwnershipTransfers,
   getGroupPendingMembers,
   isGroupNotFoundError,
   type GroupRole,
@@ -11,6 +12,7 @@ import {
 import { EditGroupForm } from "./edit-group-form";
 import { GroupInvitesPanel } from "./group-invites-panel";
 import { MemberRoleAction } from "./member-role-action";
+import { OwnershipTransferPanel } from "./ownership-transfer-panel";
 
 const roleLabels: Record<GroupRole, string> = {
   MEMBER: "Membro",
@@ -38,7 +40,13 @@ async function loadGroupDetail(groupId: string) {
     const group = await getGroup(groupId);
     const canManageInvites =
       group.role === "OWNER" || group.role === "ORGANIZER";
-    const [members, invitesResult, pendingMembersResult] = await Promise.all([
+    const canManageOwnership = group.role === "OWNER";
+    const [
+      members,
+      invitesResult,
+      pendingMembersResult,
+      ownershipTransfersResult,
+    ] = await Promise.all([
       getGroupMembers(groupId),
       canManageInvites
         ? getGroupInvites(groupId)
@@ -50,14 +58,21 @@ async function loadGroupDetail(groupId: string) {
             .then((value) => ({ ok: true as const, value }))
             .catch(() => ({ ok: false as const, value: [] }))
         : Promise.resolve({ ok: true as const, value: [] }),
+      canManageOwnership
+        ? getGroupOwnershipTransfers(groupId)
+            .then((value) => ({ ok: true as const, value }))
+            .catch(() => ({ ok: false as const, value: [] }))
+        : Promise.resolve({ ok: true as const, value: [] }),
     ]);
 
     return {
       group,
       hasInviteLoadError:
         !invitesResult.ok || !pendingMembersResult.ok,
+      hasOwnershipTransferLoadError: !ownershipTransfersResult.ok,
       invites: invitesResult.value,
       members,
+      ownershipTransfers: ownershipTransfersResult.value,
       pendingMembers: pendingMembersResult.value,
     };
   } catch (error) {
@@ -73,8 +88,15 @@ export default async function GroupDetailPage({
   params,
 }: GroupDetailPageProps) {
   const { groupId } = await params;
-  const { group, hasInviteLoadError, invites, members, pendingMembers } =
-    await loadGroupDetail(groupId);
+  const {
+    group,
+    hasInviteLoadError,
+    hasOwnershipTransferLoadError,
+    invites,
+    members,
+    ownershipTransfers,
+    pendingMembers,
+  } = await loadGroupDetail(groupId);
   const canEdit = group.role === "OWNER" || group.role === "ORGANIZER";
   const canManageRoles = group.role === "OWNER";
 
@@ -158,6 +180,22 @@ export default async function GroupDetailPage({
               invites={invites}
               pendingMembers={pendingMembers}
             />
+          ) : null}
+
+          {canManageRoles ? (
+            hasOwnershipTransferLoadError ? (
+              <section className="members-panel">
+                <p className="form-error" role="alert">
+                  Não foi possível carregar transferências de propriedade.
+                </p>
+              </section>
+            ) : (
+              <OwnershipTransferPanel
+                groupId={group.id}
+                members={members}
+                transfers={ownershipTransfers}
+              />
+            )
           ) : null}
         </div>
 

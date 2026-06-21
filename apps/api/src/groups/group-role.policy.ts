@@ -31,6 +31,16 @@ export class GroupRolePolicy {
     );
   }
 
+  assertCanTransferOwnership(role: GroupRole): void {
+    if (role === GroupRole.OWNER) {
+      return;
+    }
+
+    throw new ForbiddenException(
+      "Você não pode transferir a propriedade deste Grupo.",
+    );
+  }
+
   private isAdministrativeRole(role: GroupRole): boolean {
     return role === GroupRole.OWNER || role === GroupRole.ORGANIZER;
   }

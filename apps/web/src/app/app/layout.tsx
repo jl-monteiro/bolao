@@ -24,6 +24,7 @@ export default async function AppLayout({
           <Link aria-current="page" href="/app">
             Grupos
           </Link>
+          <Link href="/app/seguranca">Segurança</Link>
         </nav>
         <div className="app-account">
           <div className="app-identity">

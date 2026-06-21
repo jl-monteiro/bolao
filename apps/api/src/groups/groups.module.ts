@@ -11,6 +11,7 @@ import {
   NOTIFICATION_PROVIDER,
   notificationProvider,
 } from "../notifications/notification-provider.js";
+import { MFA_CLOCK, MfaService } from "../mfa/mfa.service.js";
 import { GroupInvitesController } from "./group-invites.controller.js";
 import {
   GROUP_INVITE_CLOCK,
@@ -23,9 +24,19 @@ import { GroupsController } from "./groups.controller.js";
 import { GroupsService } from "./groups.service.js";
 import { MeController } from "./me.controller.js";
 import { MeService } from "./me.service.js";
+import { OwnershipTransferController } from "./ownership-transfer.controller.js";
+import {
+  OWNERSHIP_TRANSFER_CLOCK,
+  OwnershipTransferService,
+} from "./ownership-transfer.service.js";
 
 @Module({
-  controllers: [GroupInvitesController, GroupsController, MeController],
+  controllers: [
+    GroupInvitesController,
+    GroupsController,
+    MeController,
+    OwnershipTransferController,
+  ],
   providers: [
     {
       provide: ACTIVATION_CLOCK,
@@ -46,8 +57,20 @@ import { MeService } from "./me.service.js";
       },
     },
     {
+      provide: MFA_CLOCK,
+      useValue: {
+        now: () => new Date(),
+      },
+    },
+    {
       provide: NOTIFICATION_PROVIDER,
       useValue: notificationProvider,
+    },
+    {
+      provide: OWNERSHIP_TRANSFER_CLOCK,
+      useValue: {
+        now: () => new Date(),
+      },
     },
     GroupInviteExpirationService,
     GroupInviteTokenService,
@@ -55,7 +78,9 @@ import { MeService } from "./me.service.js";
     GroupRolePolicy,
     GroupsService,
     IdentityService,
+    MfaService,
     MeService,
+    OwnershipTransferService,
     PendingMembershipActivationService,
   ],
 })
