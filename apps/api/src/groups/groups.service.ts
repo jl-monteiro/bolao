@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
@@ -9,9 +10,11 @@ import {
 } from "../generated/prisma/client.js";
 import {
   AuditAction,
+  AuditActorType,
   GroupRole,
 } from "../generated/prisma/enums.js";
 import { CreateGroupDto } from "./dto/create-group.dto.js";
+import { UpdateGroupMemberRoleDto } from "./dto/update-group-member-role.dto.js";
 import { UpdateGroupDto } from "./dto/update-group.dto.js";
 import { GroupRolePolicy } from "./group-role.policy.js";
 
@@ -35,6 +38,16 @@ export type GroupMemberResult = {
 
 type GroupRecord = Omit<GroupResult, "role">;
 
+type GroupMemberRecord = {
+  createdAt: Date;
+  id: string;
+  role: GroupRole;
+  user: {
+    image: string | null;
+    name: string;
+  };
+};
+
 function toGroupResult(group: GroupRecord, role: GroupRole): GroupResult {
   return {
     createdAt: group.createdAt,
@@ -44,6 +57,18 @@ function toGroupResult(group: GroupRecord, role: GroupRole): GroupResult {
     name: group.name,
     role,
     updatedAt: group.updatedAt,
+  };
+}
+
+function toGroupMemberResult(
+  membership: GroupMemberRecord,
+): GroupMemberResult {
+  return {
+    id: membership.id,
+    image: membership.user.image,
+    joinedAt: membership.createdAt,
+    name: membership.user.name,
+    role: membership.role,
   };
 }
 
@@ -170,13 +195,110 @@ export class GroupsService {
       },
     });
 
-    return memberships.map(({ createdAt, id, role, user }) => ({
-      id,
-      image: user.image,
-      joinedAt: createdAt,
-      name: user.name,
-      role,
-    }));
+    return memberships.map(toGroupMemberResult);
+  }
+
+  async updateMemberRole(
+    userId: string,
+    groupId: string,
+    membershipId: string,
+    input: UpdateGroupMemberRoleDto,
+  ): Promise<GroupMemberResult> {
+    return this.prisma.$transaction(async (transaction) => {
+      const requesterMembership =
+        await transaction.groupMembership.findUnique({
+          select: {
+            role: true,
+          },
+          where: {
+            groupId_userId: {
+              groupId,
+              userId,
+            },
+          },
+        });
+
+      if (!requesterMembership) {
+        throw new NotFoundException("Grupo não encontrado.");
+      }
+
+      this.rolePolicy.assertCanManageMemberRoles(
+        requesterMembership.role,
+      );
+
+      const targetMembership =
+        await transaction.groupMembership.findFirst({
+          select: {
+            createdAt: true,
+            id: true,
+            role: true,
+            user: {
+              select: {
+                image: true,
+                name: true,
+              },
+            },
+          },
+          where: {
+            groupId,
+            id: membershipId,
+          },
+        });
+
+      if (!targetMembership) {
+        throw new NotFoundException("Membro do Grupo não encontrado.");
+      }
+
+      if (targetMembership.role === GroupRole.OWNER) {
+        throw new ForbiddenException(
+          "Você não pode alterar o papel do Proprietário do Grupo.",
+        );
+      }
+
+      if (targetMembership.role === input.role) {
+        return toGroupMemberResult(targetMembership);
+      }
+
+      const updatedMembership =
+        await transaction.groupMembership.update({
+          data: {
+            role: input.role,
+          },
+          select: {
+            createdAt: true,
+            id: true,
+            role: true,
+            user: {
+              select: {
+                image: true,
+                name: true,
+              },
+            },
+          },
+          where: {
+            id: membershipId,
+          },
+        });
+
+      await transaction.auditLog.create({
+        data: {
+          action: AuditAction.GROUP_MEMBER_ROLE_UPDATED,
+          actorId: userId,
+          actorType: AuditActorType.USER,
+          groupId,
+          newValues: {
+            membershipId,
+            role: updatedMembership.role,
+          },
+          previousValues: {
+            membershipId,
+            role: targetMembership.role,
+          },
+        },
+      });
+
+      return toGroupMemberResult(updatedMembership);
+    });
   }
 
   async update(

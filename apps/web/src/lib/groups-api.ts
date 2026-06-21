@@ -7,13 +7,14 @@ import type {
   IncomingGroupInvite,
   MePendingMembership,
 } from "@/lib/group-invites-contract";
+import type { GroupMember, GroupRole } from "@/lib/group-members-contract";
+
+export type { GroupMember, GroupRole } from "@/lib/group-members-contract";
 
 const apiUrl =
   process.env.API_URL ??
   process.env.NEXT_PUBLIC_API_URL ??
   "http://localhost:3001";
-
-export type GroupRole = "OWNER" | "ORGANIZER" | "MEMBER";
 
 export type GroupSummary = {
   createdAt: string;
@@ -23,14 +24,6 @@ export type GroupSummary = {
   name: string;
   role: GroupRole;
   updatedAt: string;
-};
-
-export type GroupMember = {
-  id: string;
-  image: string | null;
-  joinedAt: string;
-  name: string;
-  role: GroupRole;
 };
 
 export class GroupNotFoundError extends Error {

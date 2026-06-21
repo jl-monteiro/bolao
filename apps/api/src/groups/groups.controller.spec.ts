@@ -45,6 +45,14 @@ function createServiceMock() {
     listMembers: jest.fn<
       (userId: string, groupId: string) => Promise<GroupMemberResult[]>
     >(),
+    updateMemberRole: jest.fn<
+      (
+        userId: string,
+        groupId: string,
+        membershipId: string,
+        input: { role: "ORGANIZER" | "MEMBER" },
+      ) => Promise<GroupMemberResult>
+    >(),
     update: jest.fn<
       (
         userId: string,
@@ -108,6 +116,38 @@ describe("GroupsController", () => {
     expect(service.listMembers).toHaveBeenCalledWith(
       "user-1",
       "group-1",
+    );
+  });
+
+  it("updates a Group member role for the authenticated user", async () => {
+    const service = createServiceMock();
+    service.updateMemberRole.mockResolvedValue({
+      ...member,
+      role: GroupRole.ORGANIZER,
+    });
+    const controller = new GroupsController(
+      service as unknown as GroupsService,
+    );
+    const input = {
+      role: GroupRole.ORGANIZER,
+    };
+
+    await expect(
+      controller.updateMemberRole(
+        session,
+        "group-1",
+        "membership-1",
+        input,
+      ),
+    ).resolves.toEqual({
+      ...member,
+      role: GroupRole.ORGANIZER,
+    });
+    expect(service.updateMemberRole).toHaveBeenCalledWith(
+      "user-1",
+      "group-1",
+      "membership-1",
+      input,
     );
   });
 

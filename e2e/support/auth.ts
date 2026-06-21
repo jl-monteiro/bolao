@@ -24,7 +24,8 @@ type GroupAuditLog = {
     | "GROUP_INVITE_ACCEPTED"
     | "GROUP_INVITE_EXPIRED"
     | "GROUP_PENDING_MEMBERSHIP_EXPIRED"
-    | "GROUP_MEMBERSHIP_ACTIVATED";
+    | "GROUP_MEMBERSHIP_ACTIVATED"
+    | "GROUP_MEMBER_ROLE_UPDATED";
   actorId: string | null;
   actorType: "SYSTEM" | "USER";
   newValues: Record<string, unknown> | null;

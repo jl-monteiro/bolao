@@ -42,4 +42,30 @@ describe("GroupRolePolicy", () => {
       ),
     );
   });
+
+  it("allows the Group Owner to manage member roles", () => {
+    expect(() =>
+      policy.assertCanManageMemberRoles(GroupRole.OWNER),
+    ).not.toThrow();
+  });
+
+  it("forbids an Organizer from managing member roles", () => {
+    expect(() =>
+      policy.assertCanManageMemberRoles(GroupRole.ORGANIZER),
+    ).toThrow(
+      new ForbiddenException(
+        "Você não pode alterar papéis deste Grupo.",
+      ),
+    );
+  });
+
+  it("forbids a Member from managing member roles", () => {
+    expect(() =>
+      policy.assertCanManageMemberRoles(GroupRole.MEMBER),
+    ).toThrow(
+      new ForbiddenException(
+        "Você não pode alterar papéis deste Grupo.",
+      ),
+    );
+  });
 });

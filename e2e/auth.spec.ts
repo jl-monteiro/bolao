@@ -386,6 +386,111 @@ test("Proprietário e Organizador editam o Grupo com auditoria", async ({
   });
 });
 
+test("Proprietário promove e rebaixa Organizador com auditoria", async ({
+  browser,
+  page,
+  request,
+}) => {
+  const owner = await createVerifiedUser(request);
+  const member = await createVerifiedUser(request);
+
+  await signIn(page, owner);
+  const createResponse = await page.context().request.post(
+    `${apiUrl}/v1/groups`,
+    {
+      data: {
+        name: `Gestão de papéis ${Date.now()}`,
+      },
+    },
+  );
+  expect(createResponse.status()).toBe(201);
+  const group = (await createResponse.json()) as { id: string };
+  await addGroupMembership(group.id, member.id, "MEMBER");
+
+  await page.goto(`/app/grupos/${group.id}`);
+  const promoteButton = page.getByRole("button", {
+    name: `Promover ${member.name} para Organizador`,
+  });
+  await expect(promoteButton).toBeVisible();
+  await promoteButton.click();
+
+  await expect(
+    page.getByRole("button", {
+      name: `Rebaixar ${member.name} para Membro`,
+    }),
+  ).toBeVisible();
+
+  const organizerContext = await browser.newContext();
+  try {
+    const organizerPage = await organizerContext.newPage();
+    await signIn(organizerPage, member);
+    const membersResponse = await organizerContext.request.get(
+      `${apiUrl}/v1/groups/${group.id}/members`,
+    );
+    expect(membersResponse.status()).toBe(200);
+    const members = (await membersResponse.json()) as Array<{
+      id: string;
+      name: string;
+      role: "OWNER" | "ORGANIZER" | "MEMBER";
+    }>;
+    const promotedMember = members.find(({ name }) => name === member.name);
+    if (!promotedMember) {
+      throw new Error("Membro promovido não apareceu na lista do Grupo.");
+    }
+    expect(promotedMember).toMatchObject({
+      role: "ORGANIZER",
+    });
+
+    const forbiddenResponse = await organizerContext.request.patch(
+      `${apiUrl}/v1/groups/${group.id}/members/${promotedMember.id}/role`,
+      {
+        data: {
+          role: "MEMBER",
+        },
+      },
+    );
+    expect(forbiddenResponse.status()).toBe(403);
+  } finally {
+    await organizerContext.close();
+  }
+
+  await page
+    .getByRole("button", {
+      name: `Rebaixar ${member.name} para Membro`,
+    })
+    .click();
+  await expect(
+    page.getByRole("button", {
+      name: `Promover ${member.name} para Organizador`,
+    }),
+  ).toBeVisible();
+
+  const logs = await getGroupAuditLogs(group.id);
+  expect(logs.map(({ action }) => action)).toEqual([
+    "GROUP_CREATED",
+    "GROUP_MEMBER_ROLE_UPDATED",
+    "GROUP_MEMBER_ROLE_UPDATED",
+  ]);
+  expect(logs[1]).toMatchObject({
+    actorId: owner.id,
+    newValues: {
+      role: "ORGANIZER",
+    },
+    previousValues: {
+      role: "MEMBER",
+    },
+  });
+  expect(logs[2]).toMatchObject({
+    actorId: owner.id,
+    newValues: {
+      role: "MEMBER",
+    },
+    previousValues: {
+      role: "ORGANIZER",
+    },
+  });
+});
+
 test("Membro consulta o Grupo, mas não edita", async ({
   browser,
   page,

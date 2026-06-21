@@ -21,6 +21,16 @@ export class GroupRolePolicy {
     );
   }
 
+  assertCanManageMemberRoles(role: GroupRole): void {
+    if (role === GroupRole.OWNER) {
+      return;
+    }
+
+    throw new ForbiddenException(
+      "Você não pode alterar papéis deste Grupo.",
+    );
+  }
+
   private isAdministrativeRole(role: GroupRole): boolean {
     return role === GroupRole.OWNER || role === GroupRole.ORGANIZER;
   }

@@ -51,6 +51,7 @@ POST   /v1/groups/:groupId/invites
 GET    /v1/groups/:groupId/invites
 DELETE /v1/groups/:groupId/invites/:inviteId
 GET    /v1/groups/:groupId/pending-members
+PATCH  /v1/groups/:groupId/members/:membershipId/role
 POST   /v1/group-invites/preview
 POST   /v1/group-invites/accept
 GET    /v1/me/pending-memberships

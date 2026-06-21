@@ -25,6 +25,7 @@ import { CreateGroupDto } from "./dto/create-group.dto.js";
 import { GroupMemberResponseDto } from "./dto/group-member-response.dto.js";
 import { GroupResponseDto } from "./dto/group-response.dto.js";
 import { UpdateGroupDto } from "./dto/update-group.dto.js";
+import { UpdateGroupMemberRoleDto } from "./dto/update-group-member-role.dto.js";
 import { GroupsService } from "./groups.service.js";
 
 @ApiTags("groups")
@@ -57,6 +58,29 @@ export class GroupsController {
     @Param("groupId") groupId: string,
   ) {
     return this.groupsService.listMembers(session.user.id, groupId);
+  }
+
+  @Patch(":groupId/members/:membershipId/role")
+  @ApiOkResponse({ type: GroupMemberResponseDto })
+  @ApiBadRequestResponse({
+    description: "Papel inválido.",
+  })
+  @ApiForbiddenResponse({
+    description: "O papel atual não permite alterar papéis do Grupo.",
+  })
+  @ApiNotFoundResponse({ description: "Grupo ou membro não encontrado." })
+  updateMemberRole(
+    @Session() session: UserSession<typeof auth>,
+    @Param("groupId") groupId: string,
+    @Param("membershipId") membershipId: string,
+    @Body() input: UpdateGroupMemberRoleDto,
+  ) {
+    return this.groupsService.updateMemberRole(
+      session.user.id,
+      groupId,
+      membershipId,
+      input,
+    );
   }
 
   @Get(":groupId")

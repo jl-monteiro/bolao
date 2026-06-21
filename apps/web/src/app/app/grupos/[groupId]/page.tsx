@@ -10,6 +10,7 @@ import {
 } from "@/lib/groups-api";
 import { EditGroupForm } from "./edit-group-form";
 import { GroupInvitesPanel } from "./group-invites-panel";
+import { MemberRoleAction } from "./member-role-action";
 
 const roleLabels: Record<GroupRole, string> = {
   MEMBER: "Membro",
@@ -75,6 +76,7 @@ export default async function GroupDetailPage({
   const { group, hasInviteLoadError, invites, members, pendingMembers } =
     await loadGroupDetail(groupId);
   const canEdit = group.role === "OWNER" || group.role === "ORGANIZER";
+  const canManageRoles = group.role === "OWNER";
 
   return (
     <section className="group-detail" aria-labelledby="group-title">
@@ -131,9 +133,19 @@ export default async function GroupDetailPage({
                       }).format(new Date(member.joinedAt))}
                     </span>
                   </div>
-                  <span className="member-role">
-                    {roleLabels[member.role]}
-                  </span>
+                  <div className="member-role-management">
+                    <span className="member-role">
+                      {roleLabels[member.role]}
+                    </span>
+                    {canManageRoles && member.role !== "OWNER" ? (
+                      <MemberRoleAction
+                        currentRole={member.role}
+                        groupId={group.id}
+                        memberName={member.name}
+                        membershipId={member.id}
+                      />
+                    ) : null}
+                  </div>
                 </li>
               ))}
             </ul>

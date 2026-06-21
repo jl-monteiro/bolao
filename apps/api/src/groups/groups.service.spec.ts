@@ -31,8 +31,13 @@ type CreatedGroupRecord = GroupRecord & {
 
 type MembershipRecord = {
   createdAt?: Date;
-  group: GroupRecord;
+  group?: GroupRecord;
+  id?: string;
   role: GroupRole;
+  user?: {
+    image: string | null;
+    name: string;
+  };
 };
 
 type GroupMemberRecord = {
@@ -55,6 +60,8 @@ function createPrismaMock() {
       update: jest.fn<(input: unknown) => Promise<GroupRecord>>(),
     },
     groupMembership: {
+      findFirst:
+        jest.fn<(input: unknown) => Promise<GroupMemberRecord | null>>(),
       findMany:
         jest.fn<
           (
@@ -65,6 +72,9 @@ function createPrismaMock() {
         jest.fn<
           (input: unknown) => Promise<MembershipRecord | null>
         >(),
+      update: jest.fn<
+        (input: unknown) => Promise<GroupMemberRecord>
+      >(),
     },
   };
 
@@ -320,6 +330,242 @@ describe("GroupsService", () => {
       service.listMembers("user-2", "group-1"),
     ).rejects.toEqual(new NotFoundException("Grupo não encontrado."));
     expect(prisma.groupMembership.findMany).not.toHaveBeenCalled();
+  });
+
+  it("updates a member role as Owner and records previous and new values", async () => {
+    const prisma = createPrismaMock();
+    prisma.transaction.groupMembership.findUnique.mockResolvedValue({
+      role: GroupRole.OWNER,
+    });
+    prisma.transaction.groupMembership.findFirst.mockResolvedValue({
+      createdAt,
+      id: "membership-2",
+      role: GroupRole.MEMBER,
+      user: {
+        image: null,
+        name: "Bruno",
+      },
+    });
+    prisma.transaction.groupMembership.update.mockResolvedValue({
+      createdAt,
+      id: "membership-2",
+      role: GroupRole.ORGANIZER,
+      user: {
+        image: null,
+        name: "Bruno",
+      },
+    });
+    prisma.transaction.auditLog.create.mockResolvedValue({
+      id: "audit-3",
+    });
+    const service = createService(prisma);
+
+    await expect(
+      service.updateMemberRole("owner-1", "group-1", "membership-2", {
+        role: GroupRole.ORGANIZER,
+      }),
+    ).resolves.toEqual({
+      id: "membership-2",
+      image: null,
+      joinedAt: createdAt,
+      name: "Bruno",
+      role: GroupRole.ORGANIZER,
+    });
+    expect(
+      prisma.transaction.groupMembership.findUnique,
+    ).toHaveBeenCalledWith({
+      select: {
+        role: true,
+      },
+      where: {
+        groupId_userId: {
+          groupId: "group-1",
+          userId: "owner-1",
+        },
+      },
+    });
+    expect(
+      prisma.transaction.groupMembership.findFirst,
+    ).toHaveBeenCalledWith({
+      select: {
+        createdAt: true,
+        id: true,
+        role: true,
+        user: {
+          select: {
+            image: true,
+            name: true,
+          },
+        },
+      },
+      where: {
+        groupId: "group-1",
+        id: "membership-2",
+      },
+    });
+    expect(prisma.transaction.groupMembership.update).toHaveBeenCalledWith({
+      data: {
+        role: GroupRole.ORGANIZER,
+      },
+      select: {
+        createdAt: true,
+        id: true,
+        role: true,
+        user: {
+          select: {
+            image: true,
+            name: true,
+          },
+        },
+      },
+      where: {
+        id: "membership-2",
+      },
+    });
+    expect(prisma.transaction.auditLog.create).toHaveBeenCalledWith({
+      data: {
+        action: "GROUP_MEMBER_ROLE_UPDATED",
+        actorId: "owner-1",
+        actorType: "USER",
+        groupId: "group-1",
+        newValues: {
+          membershipId: "membership-2",
+          role: GroupRole.ORGANIZER,
+        },
+        previousValues: {
+          membershipId: "membership-2",
+          role: GroupRole.MEMBER,
+        },
+      },
+    });
+  });
+
+  it("returns the member without audit when the role is already set", async () => {
+    const prisma = createPrismaMock();
+    prisma.transaction.groupMembership.findUnique.mockResolvedValue({
+      role: GroupRole.OWNER,
+    });
+    prisma.transaction.groupMembership.findFirst.mockResolvedValue({
+      createdAt,
+      id: "membership-2",
+      role: GroupRole.ORGANIZER,
+      user: {
+        image: "https://example.com/avatar.png",
+        name: "Bruno",
+      },
+    });
+    const service = createService(prisma);
+
+    await expect(
+      service.updateMemberRole("owner-1", "group-1", "membership-2", {
+        role: GroupRole.ORGANIZER,
+      }),
+    ).resolves.toEqual({
+      id: "membership-2",
+      image: "https://example.com/avatar.png",
+      joinedAt: createdAt,
+      name: "Bruno",
+      role: GroupRole.ORGANIZER,
+    });
+    expect(prisma.transaction.groupMembership.update).not.toHaveBeenCalled();
+    expect(prisma.transaction.auditLog.create).not.toHaveBeenCalled();
+  });
+
+  it.each([GroupRole.ORGANIZER, GroupRole.MEMBER])(
+    "forbids a %s from updating member roles",
+    async (role) => {
+      const prisma = createPrismaMock();
+      prisma.transaction.groupMembership.findUnique.mockResolvedValue({
+        role,
+      });
+      const service = createService(prisma);
+
+      await expect(
+        service.updateMemberRole(
+          "user-2",
+          "group-1",
+          "membership-2",
+          {
+            role: GroupRole.ORGANIZER,
+          },
+        ),
+      ).rejects.toMatchObject({
+        status: 403,
+      });
+      expect(
+        prisma.transaction.groupMembership.findFirst,
+      ).not.toHaveBeenCalled();
+      expect(
+        prisma.transaction.groupMembership.update,
+      ).not.toHaveBeenCalled();
+      expect(prisma.transaction.auditLog.create).not.toHaveBeenCalled();
+    },
+  );
+
+  it("hides role updates from a non-member", async () => {
+    const prisma = createPrismaMock();
+    prisma.transaction.groupMembership.findUnique.mockResolvedValue(null);
+    const service = createService(prisma);
+
+    await expect(
+      service.updateMemberRole("user-3", "group-1", "membership-2", {
+        role: GroupRole.MEMBER,
+      }),
+    ).rejects.toEqual(new NotFoundException("Grupo não encontrado."));
+    expect(prisma.transaction.groupMembership.findFirst).not.toHaveBeenCalled();
+    expect(prisma.transaction.groupMembership.update).not.toHaveBeenCalled();
+    expect(prisma.transaction.auditLog.create).not.toHaveBeenCalled();
+  });
+
+  it("hides a missing or cross-group target membership", async () => {
+    const prisma = createPrismaMock();
+    prisma.transaction.groupMembership.findUnique.mockResolvedValue({
+      role: GroupRole.OWNER,
+    });
+    prisma.transaction.groupMembership.findFirst.mockResolvedValue(null);
+    const service = createService(prisma);
+
+    await expect(
+      service.updateMemberRole("owner-1", "group-1", "membership-9", {
+        role: GroupRole.MEMBER,
+      }),
+    ).rejects.toEqual(
+      new NotFoundException("Membro do Grupo não encontrado."),
+    );
+    expect(prisma.transaction.groupMembership.update).not.toHaveBeenCalled();
+    expect(prisma.transaction.auditLog.create).not.toHaveBeenCalled();
+  });
+
+  it("forbids updating the Owner membership role", async () => {
+    const prisma = createPrismaMock();
+    prisma.transaction.groupMembership.findUnique.mockResolvedValue({
+      role: GroupRole.OWNER,
+    });
+    prisma.transaction.groupMembership.findFirst.mockResolvedValue({
+      createdAt,
+      id: "membership-owner",
+      role: GroupRole.OWNER,
+      user: {
+        image: null,
+        name: "Ana",
+      },
+    });
+    const service = createService(prisma);
+
+    await expect(
+      service.updateMemberRole(
+        "owner-1",
+        "group-1",
+        "membership-owner",
+        {
+          role: GroupRole.MEMBER,
+        },
+      ),
+    ).rejects.toMatchObject({
+      status: 403,
+    });
+    expect(prisma.transaction.groupMembership.update).not.toHaveBeenCalled();
+    expect(prisma.transaction.auditLog.create).not.toHaveBeenCalled();
   });
 
   it("updates Group details as Owner and records previous and new values", async () => {
