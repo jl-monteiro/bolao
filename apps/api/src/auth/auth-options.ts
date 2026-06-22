@@ -11,7 +11,10 @@ type AuthRuntimeOptions = {
   baseURL: string;
   emailAndPassword: {
     enabled: true;
+    minPasswordLength: 8;
     requireEmailVerification: true;
+    resetPasswordTokenExpiresIn: 3600;
+    revokeSessionsOnPasswordReset: true;
   };
   secret: string;
   socialProviders?: {
@@ -39,7 +42,10 @@ export function buildAuthOptions(
     baseURL: environment.API_URL,
     emailAndPassword: {
       enabled: true,
+      minPasswordLength: 8,
       requireEmailVerification: true,
+      resetPasswordTokenExpiresIn: 3600,
+      revokeSessionsOnPasswordReset: true,
     },
     secret: environment.BETTER_AUTH_SECRET,
     ...(hasGoogleCredentials

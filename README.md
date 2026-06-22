@@ -58,3 +58,20 @@ GET    /v1/me/pending-memberships
 POST   /v1/me/identity
 POST   /v1/me/pending-memberships/:pendingId/activate
 ```
+
+## Recuperacao de Senha
+
+- Recuperacao/redefinicao de senha usa Better Auth e `NotificationProvider`.
+- O pedido responde de forma neutra para evitar enumeracao de contas.
+- O link de redefinicao expira em 1 hora, e o token e de uso unico.
+- Apos redefinir a senha, sessoes antigas sao revogadas.
+- Em desenvolvimento, sem credenciais do Resend, o link aparece no console da API.
+
+Superficies principais:
+
+```text
+POST /v1/auth/request-password-reset
+GET  /v1/auth/reset-password/:token
+POST /v1/auth/reset-password
+GET  /redefinir-senha
+```

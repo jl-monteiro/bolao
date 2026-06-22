@@ -167,3 +167,22 @@ export async function getGroupMembershipRole(
     return result.rows[0]?.role ?? null;
   });
 }
+
+export async function getPasswordResetToken(
+  userId: string,
+): Promise<string> {
+  return withDatabase(async (database) => {
+    const result = await database.query<{ identifier: string }>(
+      `SELECT "identifier"
+       FROM "Verification"
+       WHERE "value" = $1
+         AND "identifier" LIKE 'reset-password:%'
+       ORDER BY "createdAt" DESC
+       LIMIT 1`,
+      [userId],
+    );
+
+    expect(result.rowCount).toBe(1);
+    return result.rows[0].identifier.replace("reset-password:", "");
+  });
+}

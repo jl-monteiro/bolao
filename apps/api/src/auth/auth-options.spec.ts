@@ -15,7 +15,10 @@ describe("buildAuthOptions", () => {
       baseURL: "http://localhost:3001",
       emailAndPassword: {
         enabled: true,
+        minPasswordLength: 8,
         requireEmailVerification: true,
+        resetPasswordTokenExpiresIn: 3600,
+        revokeSessionsOnPasswordReset: true,
       },
       trustedOrigins: ["http://localhost:3000"],
     });

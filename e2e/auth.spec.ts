@@ -3,6 +3,7 @@ import type { Page } from "@playwright/test";
 import {
   addGroupMembership,
   createVerifiedUser,
+  getPasswordResetToken,
   getGroupAuditLogs,
   type VerifiedUser,
 } from "./support/auth";
@@ -101,6 +102,93 @@ test("usuário recebe confirmação visual depois de verificar o e-mail", async 
       hasText: "E-mail confirmado. Agora você pode entrar.",
     }),
   ).toBeVisible();
+});
+
+test("usuário redefine senha por link de recuperação", async ({
+  page,
+  request,
+}) => {
+  const user = await createVerifiedUser(request);
+  const newPassword = "nova-senha-segura-123";
+
+  await page.goto("/entrar");
+  await page.getByRole("link", { name: "Esqueci minha senha" }).click();
+
+  await expect(page).toHaveURL("/redefinir-senha");
+  await expect(
+    page.getByRole("heading", { name: "Recupere seu acesso" }),
+  ).toBeVisible();
+
+  await page.getByLabel("E-mail").fill(user.email);
+  await page
+    .getByRole("button", { name: "Enviar link de redefinicao" })
+    .click();
+
+  await expect(
+    page.getByRole("status").filter({
+      hasText: "Se o e-mail existir, o link aparecera no terminal da API.",
+    }),
+  ).toBeVisible();
+
+  const resetToken = await getPasswordResetToken(user.id);
+  await page.goto(
+    `${apiUrl}/v1/auth/reset-password/${resetToken}?callbackURL=${encodeURIComponent(
+      "http://localhost:3000/redefinir-senha",
+    )}`,
+  );
+
+  await expect(page).toHaveURL(/\/redefinir-senha\?token=/);
+  await expect(
+    page.getByRole("heading", { name: "Crie uma nova senha" }),
+  ).toBeVisible();
+
+  await page.getByLabel("Nova senha").fill(newPassword);
+  await page.getByLabel("Confirmar senha").fill(newPassword);
+  await page.getByRole("button", { name: "Redefinir senha" }).click();
+
+  await expect(
+    page.getByRole("status").filter({
+      hasText: "Entre novamente usando sua nova senha.",
+    }),
+  ).toBeVisible();
+
+  await page.goto(`/redefinir-senha?token=${resetToken}`);
+  await page.getByLabel("Nova senha").fill("outra-senha-123");
+  await page.getByLabel("Confirmar senha").fill("outra-senha-123");
+  await page.getByRole("button", { name: "Redefinir senha" }).click();
+
+  await expect(
+    page.getByRole("alert").filter({
+      hasText: "Link invalido ou expirado. Solicite uma nova redefinicao.",
+    }),
+  ).toBeVisible();
+
+  await page.goto("/redefinir-senha?error=INVALID_TOKEN");
+  await expect(
+    page.getByRole("alert").filter({
+      hasText: "Solicite um novo link para continuar.",
+    }),
+  ).toBeVisible();
+
+  await page.goto("/entrar");
+  await page.getByLabel("E-mail").fill(user.email);
+  await page
+    .getByRole("textbox", { name: "Senha", exact: true })
+    .fill(user.password);
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await expect(
+    page.getByRole("alert").filter({
+      hasText: "E-mail ou senha inválidos.",
+    }),
+  ).toBeVisible();
+
+  await page
+    .getByRole("textbox", { name: "Senha", exact: true })
+    .fill(newPassword);
+  await page.getByRole("button", { name: "Entrar" }).click();
+
+  await expect(page).toHaveURL("/app");
+  await expect(page.getByText(user.email)).toBeVisible();
 });
 
 test("visitante não acessa a área autenticada", async ({ page }) => {

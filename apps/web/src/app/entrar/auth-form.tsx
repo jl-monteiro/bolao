@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 
@@ -97,6 +98,8 @@ export function AuthForm({
         message:
           error.code === "EMAIL_NOT_VERIFIED"
             ? "Confirme seu e-mail antes de entrar."
+            : error.message === "Invalid email or password"
+              ? "E-mail ou senha inválidos. Confira os dados e tente novamente."
             : (error.message ??
               "E-mail ou senha inválidos. Confira os dados e tente novamente."),
         type: "error",
@@ -267,6 +270,11 @@ export function AuthForm({
           {isSignUp ? "Entrar" : "Criar conta"}
         </button>
       </p>
+      {!isSignUp ? (
+        <p className="auth-reset-link">
+          <Link href="/redefinir-senha">Esqueci minha senha</Link>
+        </p>
+      ) : null}
       <p className="security-note">
         <svg aria-hidden="true" viewBox="0 0 24 24">
           <rect height="10" rx="2" width="14" x="5" y="10" />

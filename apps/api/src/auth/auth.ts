@@ -2,11 +2,12 @@ import { Logger } from "@nestjs/common";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { betterAuth } from "better-auth/minimal";
 import { notificationProvider } from "../notifications/notification-provider.js";
+import { buildPasswordResetEmail } from "../notifications/password-reset-email.js";
 import { buildVerificationEmail } from "../notifications/verification-email.js";
 import { prisma } from "../prisma/prisma-client.js";
 import { buildAuthOptions } from "./auth-options.js";
 
-const logger = new Logger("EmailVerification");
+const logger = new Logger("AuthEmail");
 
 const options = buildAuthOptions({
   API_URL: process.env.API_URL ?? "http://localhost:3001",
@@ -21,6 +22,23 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
+  emailAndPassword: {
+    ...options.emailAndPassword,
+    sendResetPassword: ({ user, url }) => {
+      void notificationProvider
+        .sendEmail(
+          buildPasswordResetEmail({
+            email: user.email,
+            name: user.name,
+            url,
+          }),
+        )
+        .catch((error: unknown) => {
+          logger.error("Failed to send password reset email", error);
+        });
+      return Promise.resolve();
+    },
+  },
   emailVerification: {
     sendOnSignUp: true,
     sendVerificationEmail: ({ user, url }) => {
